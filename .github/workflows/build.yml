@@ -46,6 +46,8 @@ jobs:
       HARDENING: >-
         coredumps login-policy sudo-hardening network-policy hardened-malloc
         signature-policy
+      CONFORMS: cusp_fedora
+      MAX_FAILS: "6"
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
@@ -150,6 +152,12 @@ jobs:
           "$BUILDC_BIN" create repo "$IMAGE" --root "$ROOT" --no-tui \
             --owner buildc-org --host github.com \
             --image "$IMAGE" --base "$BASE"
+          if [ "$IMAGE" = hardening ]; then
+            image="${ROOT}/${IMAGE}.image.kdl"
+            sed -i "s|^    base \"|    conforms \"${CONFORMS}\"\n\n    base \"|" \
+              "$image"
+            grep -qx "    conforms \"${CONFORMS}\"" "$image"
+          fi
           while read -r name; do
             case " $SKIP " in *" $name "*) continue ;; esac
             grep -q "^supports .*\"${FAMILY}\"" "${name}/module.kdl" || continue
@@ -228,6 +236,14 @@ jobs:
           fi
           cd "$ROOT" && "$BUILDC_BIN" "${args[@]}"
 
+      - name: Restore the last scan's pass set
+        if: matrix.image == 'hardening'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ runner.temp }}/baseline.json
+          key: scap-${{ matrix.image }}-${{ github.run_id }}
+          restore-keys: scap-${{ matrix.image }}-
+
       - name: Scan the hardening claims
         if: matrix.image == 'hardening'
         run: |
@@ -249,7 +265,8 @@ jobs:
 
           report="$("$BUILDC_BIN" scap "${RUNNER_TEMP}/arf.xml" \
             --root "$ROOT" --target "$IMAGE" --datastream "$datastream" \
-            --base-scan "${GITHUB_WORKSPACE}/.ci/fedora-bootc-44-base-scan.json")"
+            --base-scan "${GITHUB_WORKSPACE}/.ci/fedora-bootc-44-base-scan.json" \
+            --baseline "${RUNNER_TEMP}/baseline.json")"
           printf '%s\n' "$report"
           rows="$(printf '%s\n' "$report" | grep '^| buildc-org/' || true)"
           if [ -z "$rows" ]; then
@@ -260,3 +277,36 @@ jobs:
             printf '%s\n' "$bad"
             echo '::error::a declared claim was not measured as passing'; exit 1
           fi
+
+          case "$report" in
+            *'this run is the baseline.'* | \
+              *'Nothing that passed before stopped passing.'*) ;;
+            *)
+              echo '::error::a rule that passed the last scan does not now'
+              exit 1
+              ;;
+          esac
+
+          fails="$(printf '%s\n' "$report" \
+            | awk -F'|' '/\(declared\)/ { gsub(/ /, "", $5); print $5 }')"
+          if [ -z "$fails" ]; then
+            echo "::error::no profile row is declared, so ${CONFORMS} is not a"\
+              "profile this datastream carries"
+            exit 1
+          fi
+          echo "::notice::${IMAGE} fails ${fails} of ${CONFORMS}, floor ${MAX_FAILS}"
+          if [ "$fails" -gt "$MAX_FAILS" ]; then
+            echo "::error::${fails} failures against a declared floor of"\
+              "${MAX_FAILS}; fix them, or choose a new floor deliberately"
+            exit 1
+          fi
+          if [ "$fails" -lt "$MAX_FAILS" ]; then
+            echo "::notice::the floor is loose and could come down to ${fails}"
+          fi
+
+      - name: Save the pass set for the next scan
+        if: always() && matrix.image == 'hardening'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ runner.temp }}/baseline.json
+          key: scap-${{ matrix.image }}-${{ github.run_id }}
