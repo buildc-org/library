@@ -15,7 +15,7 @@ on:
 
 jobs:
   collection:
-    name: ${{ matrix.family }}
+    name: ${{ matrix.image }} ${{ matrix.family }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -23,18 +23,34 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - family: fedora
+          - image: collection
+            family: fedora
             base: quay.io/fedora/fedora-bootc:44
-          - family: debian
+          - image: collection
+            family: debian
             base: ghcr.io/bootcrew/debian-bootc:latest
-          - family: ubuntu
+          - image: collection
+            family: ubuntu
             base: ghcr.io/bootcrew/ubuntu-bootc:latest
+          - image: hardening
+            family: fedora
+            base: quay.io/fedora/fedora-bootc:44
+          - image: changed
+            family: fedora
+            base: quay.io/fedora/fedora-bootc:44
     env:
       IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+      IMAGE: ${{ matrix.image }}
+      FAMILY: ${{ matrix.family }}
       SKIP: goojust power-just-scripts
+      HARDENING: >-
+        coredumps login-policy sudo-hardening network-policy hardened-malloc
+        signature-policy
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: ${{ matrix.image == 'changed' && '0' || '1' }}
 
       - name: Install shfmt
         env:
@@ -68,25 +84,77 @@ jobs:
             > "${dir}/assets/repo.sources.kdl"
           {
             echo "ROOT=${RUNNER_TEMP}/collection"
+            echo "NAMES=${RUNNER_TEMP}/names"
             echo "BUILDC_BIN=${dir}/tect"
             echo "BUILDC_ASSETS=${dir}/assets"
           } >> "${GITHUB_ENV}"
 
+      - name: Choose this leg's modules
+        env:
+          FROM: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          case "$IMAGE" in
+            collection)
+              find . -mindepth 2 -name module.kdl -not -path './.*' \
+                -printf '%h\n' | sed 's|^\./||' | sort > "$NAMES"
+              ;;
+            hardening)
+              {
+                printf '%s\n' $HARDENING
+                find hardening -mindepth 2 -name module.kdl -printf '%h\n'
+              } | sort -u \
+                | xargs -r python3 .github/closure.py "$FAMILY" > "$NAMES"
+              ;;
+            changed)
+              # A push or a manual run has no pull request base, so the leg diffs the previous commit.
+              from="${FROM:-$(git rev-parse -q --verify HEAD^ || true)}"
+              : > "$NAMES"
+              if [ -n "$from" ]; then
+                git diff --name-only "$from" HEAD | while read -r file; do
+                  dir="$(dirname "$file")"
+                  while [ "$dir" != "." ]; do
+                    if [ -f "${dir}/module.kdl" ]; then
+                      echo "$dir"
+                      break
+                    fi
+                    dir="$(dirname "$dir")"
+                  done
+                done | sort -u \
+                  | xargs -r python3 .github/closure.py "$FAMILY" > "$NAMES"
+              fi
+              ;;
+          esac
+          echo "::notice::$(wc -l < "$NAMES") modules in the ${IMAGE} leg"
+          cat "$NAMES"
+
+      # The hardening leg imports only rhel components, so a claim from another family is never measured.
+      - name: Refuse a claim outside the hardening set
+        if: matrix.image == 'hardening'
+        run: |
+          set -euo pipefail
+          claiming="$(grep -rl '^satisfies' --include=module.kdl . \
+            | sed 's|^\./||;s|/module\.kdl$||' | sort)"
+          stray="$(comm -23 <(printf '%s\n' "$claiming") <(sort "$NAMES") || true)"
+          if [ -n "$stray" ]; then
+            printf '%s\n' "$stray"
+            echo '::error::a module declares `satisfies` and no leg measures it'
+            exit 1
+          fi
+
       - name: Scaffold a repository on this collection
         env:
-          FAMILY: ${{ matrix.family }}
           BASE: ${{ matrix.base }}
         run: |
           set -euo pipefail
-          "$BUILDC_BIN" create repo collection --root "$ROOT" --no-tui \
+          "$BUILDC_BIN" create repo "$IMAGE" --root "$ROOT" --no-tui \
             --owner buildc-org --host github.com \
-            --image collection --base "$BASE"
-          for dir in */; do
-            name="${dir%/}"
+            --image "$IMAGE" --base "$BASE"
+          while read -r name; do
             case " $SKIP " in *" $name "*) continue ;; esac
             grep -q "^supports .*\"${FAMILY}\"" "${name}/module.kdl" || continue
             "$BUILDC_BIN" import module "buildc-org/${name}" --root "$ROOT" \
-              --image collection --no-tui
+              --image "$IMAGE" --no-tui
             case "$name" in
               cachyos-kernel)
                 "$BUILDC_BIN" create key secureboot --root "$ROOT" --no-tui \
@@ -99,7 +167,7 @@ jobs:
                     -out "$ROOT/keys/public/etc/pki/containers/cosign.pub"
                 ;;
             esac
-          done
+          done < "$NAMES"
           cd "$ROOT" && "$BUILDC_BIN" generate
 
       - name: Run lint
@@ -111,28 +179,57 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           set -euo pipefail
-          mapfile -t dirs < <(find . -name 'test_*.py' -type f \
+          mapfile -t names < "$NAMES"
+          if [ "${#names[@]}" -eq 0 ]; then
+            echo "no modules in this leg"
+            exit 0
+          fi
+          mapfile -t dirs < <(find "${names[@]}" -name 'test_*.py' -type f \
             -exec dirname {} \; | sort -u)
-          for dir in "${dirs[@]}"; do
+          for dir in ${dirs[@]+"${dirs[@]}"}; do
             python3 -m unittest discover -s "$dir" -v
           done
 
+      - name: Report where modules overlap
+        if: matrix.image == 'collection'
+        run: |
+          set -euo pipefail
+          rows="$(jq -r '
+            .images[].targets[]
+            | (.overlay_overridden[]
+               | "- `\(.path)`: `\(.module)` ships it, `\(.by)` wins"),
+              (.modules
+               | map(.provides[] as $c | {c: $c, m: .path})
+               | group_by(.c)[] | select(length > 1)
+               | "- `\(.[0].c)`: \(map("`\(.m)`") | join(", "))")
+          ' "${ROOT}/generated/plan.json")"
+          {
+            echo "## Where ${FAMILY} modules overlap"
+            echo
+            echo "What one module ships and another replaces, and what two of"
+            echo "them provide. Read it; it is not a failure."
+            echo
+            printf '%s\n' "${rows:-None.}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Setup Buildx
+        if: matrix.image != 'changed'
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
 
       - name: Build
-        env:
-          FAMILY: ${{ matrix.family }}
+        if: >-
+          matrix.image != 'changed'
+          && (matrix.family == 'fedora' || github.event_name != 'pull_request')
         run: |
           set -euo pipefail
           args=(build --backend buildx --no-tui)
-          if [ "$FAMILY" = fedora ]; then
-            args+=(--oci-output "${RUNNER_TEMP}/collection.oci.tar")
+          if [ "$IMAGE" = hardening ]; then
+            args+=(--oci-output "${RUNNER_TEMP}/${IMAGE}.oci.tar")
           fi
           cd "$ROOT" && "$BUILDC_BIN" "${args[@]}"
 
-      - name: Scan the Fedora claim
-        if: matrix.family == 'fedora'
+      - name: Scan the hardening claims
+        if: matrix.image == 'hardening'
         run: |
           set -euo pipefail
           sudo apt-get update
@@ -140,18 +237,19 @@ jobs:
           datastream=/usr/share/xml/scap/ssg/content/ssg-fedora-ds.xml
           [ -s "$datastream" ]
 
-          sudo podman load --input "${RUNNER_TEMP}/collection.oci.tar"
-          sudo podman image exists collection:latest
+          sudo podman load --input "${RUNNER_TEMP}/${IMAGE}.oci.tar"
+          sudo podman image exists "${IMAGE}:latest"
           cp "$datastream" "${RUNNER_TEMP}/ds.xml"
           sudo podman run --rm --entrypoint "" \
-            -v "${RUNNER_TEMP}:/scan:z" collection:latest \
+            -v "${RUNNER_TEMP}:/scan:z" "${IMAGE}:latest" \
             sh -c "dnf -y install openscap-scanner > /dev/null && oscap xccdf eval \
               --profile '(all)' --results-arf /scan/arf.xml /scan/ds.xml" || true
           [ -s "${RUNNER_TEMP}/arf.xml" ]
           sudo chown "$(id -u):$(id -g)" "${RUNNER_TEMP}/arf.xml"
 
           report="$("$BUILDC_BIN" scap "${RUNNER_TEMP}/arf.xml" \
-            --root "$ROOT" --target collection --datastream "$datastream")"
+            --root "$ROOT" --target "$IMAGE" --datastream "$datastream" \
+            --base-scan "${GITHUB_WORKSPACE}/.ci/fedora-bootc-44-base-scan.json")"
           printf '%s\n' "$report"
           rows="$(printf '%s\n' "$report" | grep '^| buildc-org/' || true)"
           if [ -z "$rows" ]; then
