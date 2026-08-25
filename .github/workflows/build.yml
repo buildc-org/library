@@ -153,7 +153,12 @@ jobs:
           report="$("$BUILDC_BIN" scap "${RUNNER_TEMP}/arf.xml" \
             --root "$ROOT" --target collection --datastream "$datastream")"
           printf '%s\n' "$report"
-          case "$report" in
-            *'| buildc-org/coredumps | pci-dss | Req-3.2 | pass |'*) ;;
-            *) echo '::error::coredumps Req-3.2 was not measured as passing'; exit 1 ;;
-          esac
+          rows="$(printf '%s\n' "$report" | grep '^| buildc-org/' || true)"
+          if [ -z "$rows" ]; then
+            echo '::error::the report declared no claim at all'; exit 1
+          fi
+          bad="$(printf '%s\n' "$rows" | grep -v '| pass |$' || true)"
+          if [ -n "$bad" ]; then
+            printf '%s\n' "$bad"
+            echo '::error::a declared claim was not measured as passing'; exit 1
+          fi
