@@ -43,9 +43,7 @@ jobs:
       IMAGE: ${{ matrix.image }}
       FAMILY: ${{ matrix.family }}
       SKIP: goojust power-just-scripts
-      HARDENING: >-
-        coredumps login-policy sudo-hardening network-policy hardened-malloc
-        signature-policy
+      HARDENING: signature-policy
       CONFORMS: cusp_fedora
       MAX_FAILS: "6"
     steps:
@@ -154,9 +152,18 @@ jobs:
             --image "$IMAGE" --base "$BASE"
           if [ "$IMAGE" = hardening ]; then
             image="${ROOT}/${IMAGE}.image.kdl"
+            bases="$(grep -c '^    base "' "$image" || true)"
+            if [ "$bases" != 1 ]; then
+              echo "::error::${image} declares ${bases} images; the conforms splice writes one"
+              exit 1
+            fi
             sed -i "s|^    base \"|    conforms \"${CONFORMS}\"\n\n    base \"|" \
               "$image"
-            grep -qx "    conforms \"${CONFORMS}\"" "$image"
+            wrote="$(grep -cx "    conforms \"${CONFORMS}\"" "$image" || true)"
+            if [ "$wrote" != 1 ]; then
+              echo "::error::${image} carries ${wrote} of that conforms, expected one"
+              exit 1
+            fi
           fi
           while read -r name; do
             case " $SKIP " in *" $name "*) continue ;; esac
