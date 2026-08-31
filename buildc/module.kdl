@@ -1,0 +1,15 @@
+description "tect itself, so a booted image answers for its own build with no repository; pinned separately from the buildc-version that built it"
+
+supports "fedora"
+
+provides-file "/usr/bin/tect"
+provides-file "/usr/share/buildc/assets"
+
+asset "tect" {
+    pin {
+        renovate datasource="github-releases" depName="buildc-org/buildc"
+        version "0.6.11"
+        url "https://github.com/buildc-org/buildc/releases/download/v{version}/tect-v{version}-x86_64-linux-musl.tar.gz"
+        sha256 "96d85fe69d9e0ef03da4d71ca7dd7debdca61a66b2b000fc91bb0f8b2fa9ce79" from="sidecar"
+    }
+}

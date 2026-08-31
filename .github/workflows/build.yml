@@ -67,6 +67,14 @@ jobs:
             /usr/local/share/powershell /usr/local/share/chromium
           df -h /
 
+      - name: Settle the container storage driver
+        run: |
+          sudo mkdir -p /etc/containers
+          printf '[storage]\ndriver = "overlay"\nrunroot = "/run/containers/storage"\ngraphroot = "/var/lib/containers/storage"\n' \
+            | sudo tee /etc/containers/storage.conf > /dev/null
+          sudo podman system reset --force > /dev/null 2>&1 || true
+          sudo podman info --format 'storage: {{.Store.GraphDriverName}} {{.Store.GraphOptions}}'
+
       # The released binary reads its assets from the tarball, not from a copy on the runner.
       - name: Install the released tool
         env:
@@ -227,21 +235,14 @@ jobs:
             printf '%s\n' "${rows:-None.}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Setup Buildx
-        if: matrix.image != 'changed'
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
-
       - name: Build
         if: >-
           matrix.image != 'changed'
           && (matrix.family == 'fedora' || github.event_name != 'pull_request')
         run: |
           set -euo pipefail
-          args=(build --backend buildx --no-tui)
-          if [ "$IMAGE" = hardening ]; then
-            args+=(--oci-output "${RUNNER_TEMP}/${IMAGE}.oci.tar")
-          fi
-          cd "$ROOT" && "$BUILDC_BIN" "${args[@]}"
+          cd "$ROOT" && sudo IMAGE_REGISTRY="$IMAGE_REGISTRY" \
+            "$BUILDC_BIN" build --no-tui
 
       - name: Restore the last scan's pass set
         if: matrix.image == 'hardening'
@@ -261,11 +262,10 @@ jobs:
           [ -s "$datastream" ]
           echo "DATASTREAM=${datastream}" >> "$GITHUB_ENV"
 
-      - name: Load the image under test
+      - name: Confirm the image under test
         if: matrix.image == 'hardening'
         run: |
           set -euo pipefail
-          sudo podman load --input "${RUNNER_TEMP}/${IMAGE}.oci.tar"
           sudo podman image exists "${IMAGE}:latest"
           cp "$DATASTREAM" "${RUNNER_TEMP}/ds.xml"
 
