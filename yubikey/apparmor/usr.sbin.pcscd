@@ -1,0 +1,30 @@
+abi <abi/4.0>,
+
+include <tunables/global>
+
+profile pcscd /usr/sbin/pcscd {
+  include <abstractions/base>
+  include <abstractions/nameservice>
+
+  capability chown,
+  capability setgid,
+  capability setuid,
+
+  /usr/sbin/pcscd mr,
+
+  /etc/libccid_Info.plist r,
+  /etc/reader.conf.d/ r,
+  /etc/reader.conf.d/** r,
+  /usr/lib/pcsc/drivers/ r,
+  /usr/lib/pcsc/drivers/** r,
+  /usr/lib/pcsc/drivers/**.so* mr,
+
+  owner /run/pcscd/ rw,
+  owner /run/pcscd/** rw,
+
+  /dev/bus/usb/ r,
+  /dev/bus/usb/** rw,
+  /sys/bus/usb/devices/ r,
+  /sys/devices/** r,
+  /run/udev/data/* r,
+}

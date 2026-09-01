@@ -28,10 +28,10 @@ jobs:
             base: quay.io/fedora/fedora-bootc:44
           - image: collection
             family: debian
-            base: ghcr.io/bootcrew/debian-bootc:latest
-          - image: collection
-            family: ubuntu
-            base: ghcr.io/bootcrew/ubuntu-bootc:latest
+            base: docker.io/library/debian:forky
+          - image: bootc-base
+            family: debian
+            base: docker.io/library/debian:forky
           - image: hardening
             family: fedora
             base: quay.io/fedora/fedora-bootc:44
@@ -107,6 +107,10 @@ jobs:
               find . -mindepth 2 -name module.kdl -not -path './.*' \
                 -printf '%h\n' | sed 's|^\./||' | sort > "$NAMES"
               ;;
+            bootc-base)
+              find debian-bootc-base -mindepth 2 -name module.kdl -printf '%h\n' \
+                | sort -u | xargs -r python3 .github/closure.py "$FAMILY" > "$NAMES"
+              ;;
             hardening)
               {
                 printf '%s\n' $HARDENING
@@ -173,6 +177,18 @@ jobs:
               exit 1
             fi
           fi
+          if [ "$FAMILY" = debian ]; then
+            image="${ROOT}/${IMAGE}.image.kdl"
+            sed -i 's|^        family "fedora"$|        family "debian"|' "$image"
+            grep -q '^        requires "bootc-base"$' "$image" \
+              || sed -i 's|^        family "debian"$|        family "debian"\n        requires "bootc-base"|' "$image"
+            for want in '        family "debian"' '        requires "bootc-base"'; do
+              [ "$(grep -cx "$want" "$image")" = 1 ] || {
+                echo "::error::${image} does not carry exactly one \`${want# *}\`"
+                exit 1
+              }
+            done
+          fi
           while read -r name; do
             case " $SKIP " in *" $name "*) continue ;; esac
             grep -q "^supports .*\"${FAMILY}\"" "${name}/module.kdl" || continue
@@ -238,7 +254,8 @@ jobs:
       - name: Build
         if: >-
           matrix.image != 'changed'
-          && (matrix.family == 'fedora' || github.event_name != 'pull_request')
+          && (matrix.family == 'fedora' || matrix.image == 'bootc-base'
+              || github.event_name != 'pull_request')
         run: |
           set -euo pipefail
           cd "$ROOT" && sudo IMAGE_REGISTRY="$IMAGE_REGISTRY" \
