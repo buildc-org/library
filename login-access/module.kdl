@@ -3,3 +3,9 @@ description "The two ways into a machine, neither of which a base should decide 
 supports "debian"
 
 requires-file "/usr/sbin/sshd"
+
+key "ssh" {
+    generator "ssh-keygen"
+    public "/usr/lib/buildc/authorized_keys"
+    private "id_ed25519"
+}
