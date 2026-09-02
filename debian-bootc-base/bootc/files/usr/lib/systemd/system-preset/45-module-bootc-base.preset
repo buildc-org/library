@@ -1,3 +1,5 @@
 disable apt-daily.timer
 disable apt-daily-upgrade.timer
 disable dpkg-db-backup.timer
+
+disable ssh.socket

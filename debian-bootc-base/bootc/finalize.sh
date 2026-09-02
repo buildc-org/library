@@ -49,6 +49,14 @@ rm -f /var/lib/dbus/machine-id
 rm -f /etc/ssh/ssh_host_*
 rm -f /etc/fstab
 
+rm -f /etc/systemd/system/multi-user.target.wants/ssh.service
+
+rm -f /etc/dpkg/dpkg.cfg.d/docker-apt-speedup
+rm -f /etc/apt/apt.conf.d/docker-clean \
+	/etc/apt/apt.conf.d/docker-gzip-indexes \
+	/etc/apt/apt.conf.d/docker-no-languages \
+	/etc/apt/apt.conf.d/docker-autoremove-suggests
+
 # ---- the ostree-shaped root ----
 # shellcheck disable=SC2114 # replacing the system directories is the point
 rm -rf /boot /home /root /srv /mnt /usr/local

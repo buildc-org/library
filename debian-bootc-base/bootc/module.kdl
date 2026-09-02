@@ -6,6 +6,7 @@ provides "bootc-base"
 
 provides-file "/usr/bin/bootc"
 provides-file "/usr/lib/sysimage/dpkg"
+provides-file "/usr/sbin/sshd"
 
 requires "build-environment"
 
