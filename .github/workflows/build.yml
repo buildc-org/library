@@ -32,6 +32,9 @@ jobs:
           - image: bootc-base
             family: debian
             base: docker.io/library/debian:forky
+          - image: bootc-base
+            family: ubuntu
+            base: docker.io/library/ubuntu:26.04
           - image: hardening
             family: fedora
             base: quay.io/fedora/fedora-bootc:44
@@ -108,7 +111,7 @@ jobs:
                 -printf '%h\n' | sed 's|^\./||' | sort > "$NAMES"
               ;;
             bootc-base)
-              find debian-bootc-base -mindepth 2 -name module.kdl -printf '%h\n' \
+              find deb-bootc-base -mindepth 2 -name module.kdl -printf '%h\n' \
                 | sort -u | xargs -r python3 .github/closure.py "$FAMILY" > "$NAMES"
               ;;
             hardening)
@@ -177,18 +180,28 @@ jobs:
               exit 1
             fi
           fi
-          if [ "$FAMILY" = debian ]; then
+          case "$FAMILY" in
+          debian|ubuntu)
             image="${ROOT}/${IMAGE}.image.kdl"
-            sed -i 's|^        family "fedora"$|        family "debian"|' "$image"
+            sed -i "s|^        family \"fedora\"$|        family \"${FAMILY}\"|" "$image"
             grep -q '^        requires "bootc-base"$' "$image" \
-              || sed -i 's|^        family "debian"$|        family "debian"\n        requires "bootc-base"|' "$image"
-            for want in '        family "debian"' '        requires "bootc-base"'; do
+              || sed -i "s|^        family \"${FAMILY}\"$|        family \"${FAMILY}\"\n        requires \"bootc-base\"|" "$image"
+            for want in "        family \"${FAMILY}\"" '        requires "bootc-base"'; do
               [ "$(grep -cx "$want" "$image")" = 1 ] || {
                 echo "::error::${image} does not carry exactly one \`${want# *}\`"
                 exit 1
               }
             done
-          fi
+            if [ "$FAMILY" = ubuntu ]; then
+              repo="${ROOT}/repo.kdl"
+              sed -i '/^    build-disk$/d' "$repo"
+              [ "$(grep -cx '    build-disk' "$repo" || true)" = 0 ] || {
+                echo "::error::${repo} still declares build-disk"
+                exit 1
+              }
+            fi
+            ;;
+          esac
           while read -r name; do
             case " $SKIP " in *" $name "*) continue ;; esac
             grep -q "^supports .*\"${FAMILY}\"" "${name}/module.kdl" || continue
@@ -260,6 +273,17 @@ jobs:
           set -euo pipefail
           cd "$ROOT" && sudo IMAGE_REGISTRY="$IMAGE_REGISTRY" \
             "$BUILDC_BIN" build --no-tui
+
+      - name: Lint the built base
+        if: matrix.image == 'bootc-base'
+        run: |
+          set -euo pipefail
+          sudo podman run --rm --entrypoint '' "${IMAGE}:latest" \
+            bootc container lint --fatal-warnings --no-truncate
+          pages="$(sudo podman run --rm --entrypoint '' "${IMAGE}:latest" \
+            sh -c 'find /usr/share/man/man1 -maxdepth 1 -type f | wc -l')"
+          echo "::notice::the ${FAMILY} bootc base carries ${pages} man1 pages"
+          [ "$pages" -gt 0 ]
 
       - name: Restore the last scan's pass set
         if: matrix.image == 'hardening'

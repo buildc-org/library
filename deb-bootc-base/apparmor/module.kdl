@@ -1,0 +1,12 @@
+description "AppArmor: the parser, the profile store and aa-status, which a deb-family container image carries none of"
+
+supports "debian" "ubuntu"
+
+provides "apparmor-policy"
+
+requires "build-environment"
+
+packages {
+    debian "apparmor" "apparmor-utils"
+    ubuntu "apparmor" "apparmor-utils"
+}

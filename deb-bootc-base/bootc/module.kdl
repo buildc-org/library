@@ -1,6 +1,6 @@
-description "Everything a Debian container image is missing before it is a bootc image: a kernel, dracut, ostree, bootc itself, an initramfs that carries it, and an ostree-shaped root filesystem"
+description "Everything a deb-family container image is missing before it is a bootc image: a kernel, dracut, ostree, bootc itself, an initramfs that carries it, and an ostree-shaped root filesystem"
 
-supports "debian"
+supports "debian" "ubuntu"
 
 provides "bootc-base"
 
@@ -30,6 +30,14 @@ asset "bootc-vendor" {
 
 packages {
     debian "linux-image-amd64" "firmware-linux-free" \
+           "dracut" "ostree" "composefs" \
+           "systemd-boot" "systemd-boot-efi" "shim-signed" \
+           "systemd-resolved" "libnss-resolve" "libnss-myhostname" \
+           "skopeo" "ca-certificates" "zstd" "curl" \
+           "btrfs-progs" "xfsprogs" "e2fsprogs" "dosfstools" "fdisk" \
+           "efibootmgr" "cryptsetup-bin" "dmsetup" \
+           "openssh-server" "sudo" "less" "man-db"
+    ubuntu "linux-image-generic" "linux-firmware-minimal" \
            "dracut" "ostree" "composefs" \
            "systemd-boot" "systemd-boot-efi" "shim-signed" \
            "systemd-resolved" "libnss-resolve" "libnss-myhostname" \

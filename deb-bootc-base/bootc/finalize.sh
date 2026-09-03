@@ -45,6 +45,12 @@ echo "dpkg answers for ${packages} packages from /usr/lib/sysimage/dpkg"
 
 # ---- what a build must not bake in ----
 : >/etc/machine-id
+find /run -mindepth 1 -maxdepth 1 ! -name secrets ! -name .containerenv \
+	-exec rm -rf {} +
+
+if getent passwd ubuntu >/dev/null; then
+	userdel ubuntu
+fi
 rm -f /var/lib/dbus/machine-id
 rm -f /etc/ssh/ssh_host_*
 rm -f /etc/fstab
