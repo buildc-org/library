@@ -1,0 +1,55 @@
+#!/bin/sh
+set -eu
+
+entries=/boot/loader/entries
+grubdir=/boot/grub2
+out="${grubdir}/custom.cfg"
+[ -d "$entries" ] || exit 0
+[ -d "$grubdir" ] || exit 0
+
+fields() {
+	for conf in "$entries"/*.conf; do
+		[ -f "$conf" ] || continue
+		title=''
+		kernel=''
+		initrd=''
+		options=''
+		sort_key=''
+		while read -r key value; do
+			case "$key" in
+				title) title="$value" ;;
+				linux) kernel="$value" ;;
+				initrd) initrd="$value" ;;
+				options) options="$value" ;;
+				sort-key) sort_key="$value" ;;
+			esac
+		done <"$conf"
+		[ -n "$kernel" ] || continue
+		printf '%s\t%s\t%s\t%s\t%s\n' \
+			"${sort_key:-${conf##*/}}" "${title:-${conf##*/}}" \
+			"$kernel" "$initrd" "$options"
+	done | sort
+}
+
+tmp="${out}.new"
+: >"$tmp"
+n=0
+fields | while IFS="$(printf '\t')" read -r _ title kernel initrd options; do
+	if [ "$n" -eq 0 ]; then
+		printf "set default='bls-0'\n" >>"$tmp"
+	fi
+	printf "menuentry '%s' --id 'bls-%s' {\n" "$title" "$n" >>"$tmp"
+	printf '  linux %s %s\n' "$kernel" "$options" >>"$tmp"
+	if [ -n "$initrd" ]; then
+		printf '  initrd %s\n' "$initrd" >>"$tmp"
+	fi
+	printf '}\n' >>"$tmp"
+	n=$((n + 1))
+done
+
+if [ ! -s "$tmp" ]; then
+	rm -f "$tmp"
+	echo "no usable BLS entry under ${entries}" >&2
+	exit 1
+fi
+mv -f "$tmp" "$out"

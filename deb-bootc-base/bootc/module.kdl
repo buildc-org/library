@@ -5,6 +5,7 @@ supports "debian" "ubuntu"
 provides "bootc-base"
 
 provides-file "/usr/bin/bootc"
+provides-file "/usr/bin/bootupctl"
 provides-file "/usr/lib/sysimage/dpkg"
 provides-file "/usr/sbin/sshd"
 
@@ -28,10 +29,29 @@ asset "bootc-vendor" {
     }
 }
 
+asset "bootupd" {
+    pin {
+        renovate datasource="github-releases" depName="coreos/bootupd"
+        version "0.3.1"
+        url "https://github.com/coreos/bootupd/releases/download/v{version}/bootupd-{version}.crate"
+        sha256 "335ac06a450d59f4154a81ed96186e6296c799a584cfa3c3916c7a0023498c38"
+    }
+}
+
+asset "bootupd-vendor" {
+    pin {
+        renovate datasource="github-releases" depName="coreos/bootupd"
+        version "0.3.1"
+        url "https://github.com/coreos/bootupd/releases/download/v{version}/bootupd-{version}-vendor.tar.zstd"
+        sha256 "b9348f75a7c94f727e3a7bf2487113348431ea69c6d757ec3edcd626c0cb8576"
+    }
+}
+
 packages {
     debian "linux-image-amd64" "firmware-linux-free" \
            "dracut" "ostree" "composefs" \
-           "systemd-boot" "systemd-boot-efi" "shim-signed" \
+           "systemd-boot" "systemd-boot-efi" \
+           "shim-signed" "grub-efi-amd64-signed" "grub-common" \
            "systemd-resolved" "libnss-resolve" "libnss-myhostname" \
            "skopeo" "ca-certificates" "zstd" "curl" \
            "btrfs-progs" "xfsprogs" "e2fsprogs" "dosfstools" "fdisk" \
@@ -39,7 +59,8 @@ packages {
            "openssh-server" "sudo" "less" "man-db"
     ubuntu "linux-image-generic" "linux-firmware-minimal" \
            "dracut" "ostree" "composefs" \
-           "systemd-boot" "systemd-boot-efi" "shim-signed" \
+           "systemd-boot" "systemd-boot-efi" \
+           "shim-signed" "grub-efi-amd64-signed" "grub-common" \
            "systemd-resolved" "libnss-resolve" "libnss-myhostname" \
            "skopeo" "ca-certificates" "zstd" "curl" \
            "btrfs-progs" "xfsprogs" "e2fsprogs" "dosfstools" "fdisk" \

@@ -3,3 +3,6 @@ disable apt-daily-upgrade.timer
 disable dpkg-db-backup.timer
 
 disable ssh.socket
+
+enable grub-menu-from-bls.service
+enable grub-menu-from-bls.path
