@@ -1,8 +1,9 @@
 #!/bin/sh
 set -eu
 
-entries=/boot/loader/entries
-grubdir=/boot/grub2
+root="${1:-}"
+entries="${root}/boot/loader/entries"
+grubdir="${root}/boot/grub2"
 out="${grubdir}/custom.cfg"
 [ -d "$entries" ] || exit 0
 [ -d "$grubdir" ] || exit 0
