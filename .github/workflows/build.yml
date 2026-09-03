@@ -205,6 +205,9 @@ jobs:
           while read -r name; do
             case " $SKIP " in *" $name "*) continue ;; esac
             grep -q "^supports .*\"${FAMILY}\"" "${name}/module.kdl" || continue
+            if grep -q "module \"${name}\"" "${ROOT}/${IMAGE}.image.kdl"; then
+              continue
+            fi
             "$BUILDC_BIN" import module "buildc-org/${name}" --root "$ROOT" \
               --image "$IMAGE" --no-tui
             case "$name" in

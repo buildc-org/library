@@ -8,8 +8,8 @@ provides-file "/usr/share/buildc/assets"
 asset "tect" {
     pin {
         renovate datasource="github-releases" depName="buildc-org/buildc"
-        version "0.6.20"
+        version "0.6.24"
         url "https://github.com/buildc-org/buildc/releases/download/v{version}/tect-v{version}-x86_64-linux-musl.tar.gz"
-        sha256 "a9f0e1b655c1172637ed116ac20870b95abd739835476a7bfdf4989c0786e118" from="sidecar"
+        sha256 "76bc0c37d8d3c639e319969c633c242bb3edcdf2d5459543993765b2b0ac4e80" from="sidecar"
     }
 }
