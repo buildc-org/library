@@ -8,6 +8,12 @@ out="${grubdir}/custom.cfg"
 [ -d "$entries" ] || exit 0
 [ -d "$grubdir" ] || exit 0
 
+if [ -z "$root" ] && mountpoint -q /boot \
+	&& findmnt -no OPTIONS /boot | grep -q '^ro\(,\|$\)'; then
+	mount -o remount,rw /boot
+	trap 'mount -o remount,ro /boot 2>/dev/null || :' EXIT INT TERM
+fi
+
 fields() {
 	for conf in "$entries"/*.conf; do
 		[ -f "$conf" ] || continue
