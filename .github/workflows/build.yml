@@ -26,9 +26,6 @@ jobs:
           - image: collection
             family: fedora
             base: quay.io/fedora/fedora-bootc:44
-          - image: collection
-            family: debian
-            base: docker.io/library/debian:forky
           - image: bootc-base
             family: debian
             base: docker.io/library/debian:forky

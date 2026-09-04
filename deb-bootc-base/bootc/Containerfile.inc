@@ -3,5 +3,4 @@ CMD ["/sbin/init"]
 
 RUN rm -rf /var/cache/* /var/log/*
 
-COPY <<EOF /etc/hostname
-EOF
+COPY --from=ctx @MODULE@/hostname /etc/hostname
