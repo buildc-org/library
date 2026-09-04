@@ -1,0 +1,15 @@
+description "podman and an OCI runtime, which bootc shells out to for the image store every upgrade opens"
+
+supports "debian" "ubuntu"
+
+provides "container-runtime"
+
+requires "build-environment"
+
+provides-file "/usr/bin/podman"
+provides-file "/usr/bin/crun"
+
+packages {
+    debian "podman" "crun"
+    ubuntu "podman" "crun"
+}

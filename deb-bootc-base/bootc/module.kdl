@@ -11,6 +11,8 @@ provides-file "/usr/sbin/sshd"
 
 requires "build-environment"
 
+requires "container-runtime"
+
 asset "bootc" {
     pin {
         renovate datasource="github-releases" depName="bootc-dev/bootc"
