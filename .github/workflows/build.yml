@@ -76,6 +76,7 @@ jobs:
           printf '[storage]\ndriver = "overlay"\nrunroot = "/run/containers/storage"\ngraphroot = "/var/lib/containers/storage"\n' \
             | sudo tee /etc/containers/storage.conf > /dev/null
           sudo podman system reset --force > /dev/null 2>&1 || true
+          sudo rm -rf /var/lib/containers/storage /run/containers/storage
           sudo podman info --format 'storage: {{.Store.GraphDriverName}} {{.Store.GraphOptions}}'
 
       # The released binary reads its assets from the tarball, not from a copy on the runner.
@@ -214,6 +215,9 @@ jobs:
               cachyos-kernel)
                 "$BUILDC_BIN" create key secureboot --root "$ROOT" --no-tui \
                   --cn "Collection CI"
+                ;;
+              login-access)
+                "$BUILDC_BIN" create key ssh --root "$ROOT" --no-tui
                 ;;
               signature-policy)
                 mkdir -p "$ROOT/keys/public/etc/pki/containers"
