@@ -278,6 +278,9 @@ jobs:
               || github.event_name != 'pull_request')
         run: |
           set -euo pipefail
+          echo "::group::${IMAGE} Containerfile"
+          cat "${ROOT}/generated/${IMAGE}/Containerfile"
+          echo "::endgroup::"
           cd "$ROOT" && sudo IMAGE_REGISTRY="$IMAGE_REGISTRY" \
             "$BUILDC_BIN" build --no-tui
 
