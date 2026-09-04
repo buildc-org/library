@@ -55,6 +55,7 @@ packages {
            "systemd-boot" "systemd-boot-efi" \
            "shim-signed" "grub-efi-amd64-signed" "grub-common" \
            "systemd-resolved" "libnss-resolve" "libnss-myhostname" \
+           "iproute2" \
            "skopeo" "ca-certificates" "zstd" "curl" \
            "btrfs-progs" "xfsprogs" "e2fsprogs" "dosfstools" "fdisk" \
            "efibootmgr" "cryptsetup-bin" "dmsetup" \
@@ -64,6 +65,7 @@ packages {
            "systemd-boot" "systemd-boot-efi" \
            "shim-signed" "grub-efi-amd64-signed" "grub-common" \
            "systemd-resolved" "libnss-resolve" "libnss-myhostname" \
+           "iproute2" \
            "skopeo" "ca-certificates" "zstd" "curl" \
            "btrfs-progs" "xfsprogs" "e2fsprogs" "dosfstools" "fdisk" \
            "efibootmgr" "cryptsetup-bin" "dmsetup" \
