@@ -100,7 +100,7 @@ jobs:
       IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
       IMAGE: ${{ matrix.image }}
       FAMILY: ${{ matrix.family }}
-      SKIP: just/goojust just/power-scripts
+      SKIP: system-menu/goojust system-menu/power-scripts
       HARDENING: updates/signature-policy
       CONFORMS: cusp_fedora
       MAX_FAILS: "6"

@@ -1,4 +1,4 @@
-description "Podman extras: compose, machine and the TUI"
+description "Podman extras: compose and the TUI, on top of the runtime every bootc image already has"
 
 supports "fedora" "debian" "ubuntu"
 
