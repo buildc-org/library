@@ -1,8 +1,12 @@
 description "Network tooling: avahi, wireguard-tools, tcpdump, traceroute and friends"
 
-supports "fedora"
+supports "fedora" "debian" "ubuntu"
 
 packages {
     fedora "avahi-gobject" "avahi-tools" "cifs-utils" "nmap-ncat" "tcpdump" \
             "traceroute" "wireguard-tools"
+    debian "gir1.2-avahi-0.6" "avahi-utils" "cifs-utils" "netcat-openbsd" \
+            "tcpdump" "traceroute" "wireguard-tools"
+    ubuntu "gir1.2-avahi-0.6" "avahi-utils" "cifs-utils" "netcat-openbsd" \
+            "tcpdump" "traceroute" "wireguard-tools"
 }

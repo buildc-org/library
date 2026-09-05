@@ -1,7 +1,9 @@
 description "Podman extras: compose, machine and the TUI"
 
-supports "fedora"
+supports "fedora" "debian" "ubuntu"
 
 packages {
     fedora "podman-compose" "podman-machine" "podman-tui" "slirp4netns"
+    debian "podman-compose" "passt" "slirp4netns"
+    ubuntu "podman-compose" "passt" "slirp4netns"
 }

@@ -1,7 +1,9 @@
 description "Hardware diagnostics and tuning: lm_sensors, dmidecode, intel-lpmd, alsa-ucm"
 
-supports "fedora"
+supports "fedora" "debian" "ubuntu"
 
 packages {
     fedora "alsa-ucm" "alsa-utils" "dmidecode" "intel-lpmd" "lm_sensors" "lshw" "pciutils" "powerstat"
+    debian "alsa-ucm-conf" "alsa-utils" "dmidecode" "intel-lpmd" "lm-sensors" "lshw" "pciutils" "powerstat"
+    ubuntu "alsa-ucm-conf" "alsa-utils" "dmidecode" "intel-lpmd" "lm-sensors" "lshw" "pciutils" "powerstat"
 }

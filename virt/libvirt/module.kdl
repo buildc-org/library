@@ -1,10 +1,16 @@
 description "libvirt, QEMU/KVM and virt-manager, with the group and relabel workarounds they need"
 
-supports "fedora"
+supports "fedora" "debian" "ubuntu"
 
 packages {
     fedora "edk2-ovmf" "libvirt" "libvirt-nss" "qemu" "qemu-img" \
             "qemu-system-x86-core" "qemu-user-binfmt" "qemu-user-static-aarch64" \
+            "virt-manager" "virt-v2v" "virt-viewer"
+    debian "ovmf" "libvirt-daemon-system" "libvirt-clients" "libnss-libvirt" \
+            "qemu-system-x86" "qemu-utils" "qemu-user-binfmt" \
+            "virt-manager" "virt-v2v" "virt-viewer"
+    ubuntu "ovmf" "libvirt-daemon-system" "libvirt-clients" "libnss-libvirt" \
+            "qemu-system-x86" "qemu-utils" "qemu-user-binfmt" \
             "virt-manager" "virt-v2v" "virt-viewer"
 }
 

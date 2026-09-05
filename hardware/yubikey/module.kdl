@@ -1,10 +1,11 @@
 description "Hardware token and smartcard auth: YubiKey, FIDO2, PAM and PC/SC"
 
-supports "fedora" "debian"
+supports "fedora" "debian" "ubuntu"
 
 requires "build-environment"
 
 packages {
     fedora "opensc" "pam-u2f" "pam_yubico" "pamu2fcfg" "pcsc-lite" "pcsc-lite-ccid" "yubikey-manager"
     debian "opensc" "libpam-u2f" "libpam-yubico" "pamu2fcfg" "pcscd" "libccid" "yubikey-manager"
+    ubuntu "opensc" "libpam-u2f" "libpam-yubico" "pamu2fcfg" "pcscd" "libccid" "yubikey-manager"
 }

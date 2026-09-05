@@ -1,7 +1,9 @@
 description "Backup and sync tooling: borgbackup, restic and rclone"
 
-supports "fedora"
+supports "fedora" "debian" "ubuntu"
 
 packages {
     fedora "borgbackup" "rclone" "restic"
+    debian "borgbackup" "restic"
+    ubuntu "borgbackup" "rclone" "restic"
 }
