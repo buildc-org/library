@@ -14,4 +14,3 @@ packages {
             "virt-manager" "virt-v2v" "virt-viewer"
 }
 
-after "hardened-malloc"
