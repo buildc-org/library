@@ -2,8 +2,6 @@ description "Git and its companions: git-delta, git-lfs, and the direnv that rid
 
 supports "fedora" "debian" "ubuntu"
 
-packages {
-    fedora "direnv" "git" "git-credential-libsecret" "git-delta" "git-lfs"
-    debian "direnv" "git" "git-delta" "git-lfs"
-    ubuntu "direnv" "git" "git-delta" "git-lfs"
-}
+packages "direnv" "git" "git-delta" "git-lfs"
+
+family "fedora" { packages "git-credential-libsecret" }

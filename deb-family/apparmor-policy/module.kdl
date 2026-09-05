@@ -6,7 +6,4 @@ provides "apparmor-policy"
 
 requires "build-environment"
 
-packages {
-    debian "apparmor" "apparmor-utils"
-    ubuntu "apparmor" "apparmor-utils"
-}
+packages "apparmor" "apparmor-utils"

@@ -2,8 +2,7 @@ description "Podman extras: compose and the TUI, on top of the runtime every boo
 
 supports "fedora" "debian" "ubuntu"
 
-packages {
-    fedora "podman-compose" "podman-machine" "podman-tui" "slirp4netns"
-    debian "podman-compose" "passt" "slirp4netns"
-    ubuntu "podman-compose" "passt" "slirp4netns"
-}
+packages "podman-compose" "slirp4netns"
+
+family "fedora" { packages "podman-machine" "podman-tui" }
+family "debian" "ubuntu" { packages "passt" }

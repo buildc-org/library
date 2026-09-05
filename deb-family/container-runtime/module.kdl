@@ -9,7 +9,4 @@ requires "build-environment"
 provides-file "/usr/bin/podman"
 provides-file "/usr/bin/crun"
 
-packages {
-    debian "podman" "crun"
-    ubuntu "podman" "crun"
-}
+packages "podman" "crun"

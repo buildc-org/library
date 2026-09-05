@@ -2,8 +2,5 @@ description "Solaar rules for Logitech wireless peripherals"
 
 supports "fedora" "debian" "ubuntu"
 
-packages {
-    fedora "solaar-udev"
-    debian "solaar"
-    ubuntu "solaar"
-}
+family "fedora" { packages "solaar-udev" }
+family "debian" "ubuntu" { packages "solaar" }

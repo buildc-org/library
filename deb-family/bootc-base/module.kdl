@@ -49,27 +49,14 @@ asset "bootupd-vendor" {
     }
 }
 
-packages {
-    debian "linux-image-amd64" "firmware-linux-free" \
-           "dracut" "ostree" "composefs" \
-           "systemd-boot" "systemd-boot-efi" \
-           "shim-signed" "grub-efi-amd64-signed" "grub-common" \
-           "systemd-resolved" "libnss-resolve" "libnss-myhostname" \
-           "iproute2" \
-           "skopeo" "ca-certificates" "zstd" "curl" \
-           "btrfs-progs" "xfsprogs" "e2fsprogs" "dosfstools" "fdisk" \
-           "efibootmgr" "cryptsetup-bin" "dmsetup" \
-           "openssh-server" "sudo" "less" "man-db"
-    ubuntu "linux-image-generic" "linux-firmware-minimal" \
-           "dracut" "ostree" "composefs" \
-           "systemd-boot" "systemd-boot-efi" \
-           "shim-signed" "grub-efi-amd64-signed" "grub-common" \
-           "systemd-resolved" "libnss-resolve" "libnss-myhostname" \
-           "iproute2" \
-           "skopeo" "ca-certificates" "zstd" "curl" \
-           "btrfs-progs" "xfsprogs" "e2fsprogs" "dosfstools" "fdisk" \
-           "efibootmgr" "cryptsetup-bin" "dmsetup" \
-           "openssh-server" "sudo" "less" "man-db"
-}
+packages "dracut" "ostree" "composefs" "systemd-boot" "systemd-boot-efi" \
+    "shim-signed" "grub-efi-amd64-signed" "grub-common" "systemd-resolved" \
+    "libnss-resolve" "libnss-myhostname" "iproute2" "skopeo" \
+    "ca-certificates" "zstd" "curl" "btrfs-progs" "xfsprogs" "e2fsprogs" \
+    "dosfstools" "fdisk" "efibootmgr" "cryptsetup-bin" "dmsetup" \
+    "openssh-server" "sudo" "less" "man-db"
+
+family "debian" { packages "linux-image-amd64" "firmware-linux-free" }
+family "ubuntu" { packages "linux-image-generic" "linux-firmware-minimal" }
 
 fragment position="after"
