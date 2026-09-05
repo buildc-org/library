@@ -1,3 +1,8 @@
 description "Homebrew, set up at first login, with a PATH shim for every shell"
 
-supports "fedora"
+supports "fedora" "debian" "ubuntu"
+
+packages {
+    debian "build-essential" "procps" "curl" "file" "git"
+    ubuntu "build-essential" "procps" "curl" "file" "git"
+}

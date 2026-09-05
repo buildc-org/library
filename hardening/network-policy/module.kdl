@@ -1,3 +1,4 @@
 description "Network policy: LLMNR off, and resolv.conf pointed at the systemd-resolved stub"
 
-supports "fedora"
+supports "fedora" "debian" "ubuntu"
+
