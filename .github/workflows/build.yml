@@ -42,8 +42,8 @@ jobs:
       IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
       IMAGE: ${{ matrix.image }}
       FAMILY: ${{ matrix.family }}
-      SKIP: goojust power-just-scripts
-      HARDENING: signature-policy
+      SKIP: just/goojust just/power-scripts
+      HARDENING: updates/signature-policy
       CONFORMS: cusp_fedora
       MAX_FAILS: "6"
     steps:
@@ -109,7 +109,7 @@ jobs:
                 -printf '%h\n' | sed 's|^\./||' | sort > "$NAMES"
               ;;
             bootc-base)
-              find deb-bootc-base -mindepth 2 -name module.kdl -printf '%h\n' \
+              find deb-family -mindepth 2 -name module.kdl -printf '%h\n' \
                 | sort -u | xargs -r python3 .github/closure.py "$FAMILY" > "$NAMES"
               ;;
             hardening)
@@ -209,14 +209,14 @@ jobs:
             "$BUILDC_BIN" import module "buildc-org/${name}" --root "$ROOT" \
               --image "$IMAGE" --no-tui
             case "$name" in
-              cachyos-kernel)
+              boot/cachyos-kernel)
                 "$BUILDC_BIN" create key secureboot --root "$ROOT" --no-tui \
                   --cn "Collection CI"
                 ;;
               login-access)
                 "$BUILDC_BIN" create key ssh --root "$ROOT" --no-tui
                 ;;
-              signature-policy)
+              updates/signature-policy)
                 mkdir -p "$ROOT/keys/public/etc/pki/containers"
                 openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 \
                   | openssl pkey -pubout \
