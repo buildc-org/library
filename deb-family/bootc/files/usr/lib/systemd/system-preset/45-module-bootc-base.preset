@@ -9,4 +9,6 @@ enable grub-menu-from-bls.path
 
 enable sysroot-boot.mount
 
+enable sysroot-boot-rw.service
+
 enable systemd-networkd.service

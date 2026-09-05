@@ -1,0 +1,15 @@
+[Unit]
+Description=Make the boot partition writable where bootc writes its entries
+After=sysroot-boot.mount
+Requires=sysroot-boot.mount
+ConditionPathIsMountPoint=/sysroot/boot
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/mount -o remount,rw /boot
+ExecStart=/usr/bin/mount -o remount,bind,rw /sysroot/boot
+ExecStart=/usr/bin/mount -o remount,bind,ro /boot
+
+[Install]
+WantedBy=local-fs.target

@@ -2,17 +2,33 @@
 set -eu
 
 root="${1:-}"
-entries="${root}/boot/loader/entries"
-grubdir="${root}/boot/grub2"
+
+boot="${root:-/sysroot}/boot"
+
+if [ -z "$root" ] && mountpoint -q /boot && ! mountpoint -q /sysroot/boot; then
+	echo "grub-menu-from-bls: /boot is its own partition but /sysroot/boot is not bound to it, so bootc and this script disagree about where the entries are; sysroot-boot.mount did not run" >&2
+	exit 1
+fi
+
+entries="${boot}/loader/entries"
+staged="${boot}/loader/entries.staged"
+grubdir="${boot}/grub2"
 out="${grubdir}/custom.cfg"
+
+if [ -d "$staged" ]; then
+	staged_holds_entry=
+	for conf in "$staged"/*.conf; do
+		if [ -f "$conf" ]; then
+			staged_holds_entry=yes
+		fi
+		break
+	done
+	[ -n "$staged_holds_entry" ] || exit 0
+	entries="$staged"
+fi
+
 [ -d "$entries" ] || exit 0
 [ -d "$grubdir" ] || exit 0
-
-if [ -z "$root" ] && mountpoint -q /boot \
-	&& findmnt -no OPTIONS /boot | grep -q '^ro\(,\|$\)'; then
-	mount -o remount,rw /boot
-	trap 'mount -o remount,ro /boot 2>/dev/null || :' EXIT INT TERM
-fi
 
 fields() {
 	for conf in "$entries"/*.conf; do
