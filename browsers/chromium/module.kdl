@@ -1,0 +1,7 @@
+description "Chromium from Debian sid, forky's being two releases behind"
+
+supports "debian"
+
+requires "build-environment"
+
+packages "chromium"
