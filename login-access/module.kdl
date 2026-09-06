@@ -1,6 +1,6 @@
-description "The two ways into a machine, neither of which a base should decide for one: ssh.service enabled, and a console account a hypervisor can create with systemd credentials"
+description "The two ways into a machine, neither of which a base should decide for one: the ssh daemon enabled, and a console account a hypervisor can create with systemd credentials"
 
-supports "debian" "ubuntu"
+supports "fedora" "debian" "ubuntu"
 
 requires-file "/usr/sbin/sshd"
 
