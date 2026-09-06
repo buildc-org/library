@@ -209,7 +209,7 @@ jobs:
         if: matrix.image == 'hardening'
         run: |
           set -euo pipefail
-          claiming="$(grep -rl '^satisfies' --include=module.kdl . \
+          claiming="$(grep -rlE '^[[:space:]]*satisfies' --include=module.kdl . \
             | sed 's|^\./||;s|/module\.kdl$||' | sort)"
           stray="$(comm -23 <(printf '%s\n' "$claiming") <(sort "$NAMES") || true)"
           if [ -n "$stray" ]; then

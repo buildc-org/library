@@ -2,6 +2,8 @@ description "Coredump lockdown: no storage, no size, no rlimit"
 
 supports "fedora" "debian" "ubuntu"
 
-satisfies {
-    pci-dss "Req-3.2"
+family "fedora" {
+    satisfies {
+        pci-dss "Req-3.2"
+    }
 }

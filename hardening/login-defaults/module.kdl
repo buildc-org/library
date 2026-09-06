@@ -1,9 +1,11 @@
 description "Login defaults: password ageing, length, failure delay and umask"
 
-supports "fedora"
+supports "fedora" "debian" "ubuntu"
 
-satisfies {
-    stig "CCI-000199" \
-        "CCI-000198"
-    anssi "BP28(R35)"
+family "fedora" {
+    satisfies {
+        stig "CCI-000199" \
+            "CCI-000198"
+        anssi "BP28(R35)"
+    }
 }

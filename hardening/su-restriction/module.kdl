@@ -1,7 +1,9 @@
 description "su is for wheel: pam_wheel refuses everyone else"
 
-supports "fedora"
+supports "fedora" "debian" "ubuntu"
 
-satisfies {
-    stig "SRG-OS-000312-GPOS-00123"
+family "fedora" {
+    satisfies {
+        stig "SRG-OS-000312-GPOS-00123"
+    }
 }

@@ -1,10 +1,16 @@
 description "Login policy: faillock lockout, password quality, rescue sulogin"
 
-supports "fedora"
+supports "fedora" "debian" "ubuntu"
 
-satisfies {
-    stig "CCI-001619" \
-        "CCI-000194" \
-        "CCI-000195"
-    nist "AC-7.1(ii)"
+family "debian" "ubuntu" {
+    packages "libpam-pwquality" "cracklib-runtime"
+}
+
+family "fedora" {
+    satisfies {
+        stig "CCI-001619" \
+            "CCI-000194" \
+            "CCI-000195"
+        nist "AC-7.1(ii)"
+    }
 }
