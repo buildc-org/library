@@ -13,6 +13,8 @@ a MAC policy, `rechunking` and `initramfs-generation` and `tect` is the one that
 knows which. Requirements come out before the module that needs them.
 """
 
+SEEDED = {"debian": ("bootc-base",), "ubuntu": ("bootc-base",)}
+
 import re
 import sys
 from pathlib import Path
@@ -67,6 +69,10 @@ def main(argv):
                 visit(needed)
         order.append(name)
 
+    for capability in SEEDED.get(family, ()):
+        seeded = provider.get(capability)
+        if seeded:
+            visit(seeded)
     for name in wanted:
         if name in modules and family in modules[name][0]:
             visit(name)
