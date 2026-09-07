@@ -27,6 +27,9 @@ family "fedora" {
         "systemd-oomd-defaults" "pipewire-pulseaudio" "NetworkManager-wifi" \
         "NetworkManager-bluetooth" "wpa_supplicant"
 }
+family "ubuntu" {
+    packages "plasma-session-wayland" "plasma-session-x11"
+}
 family "debian" "ubuntu" {
     packages "systemsettings" "sddm" "sddm-theme-breeze" "kwin-wayland" \
         "kwin-x11" "kde-cli-tools" "breeze" "kde-config-gtk-style" \
