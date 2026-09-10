@@ -45,6 +45,34 @@ jobs:
             printf 'include=%s\n' "$(jq -c -s add <<< "${always}${deb}")" >> "$GITHUB_OUTPUT"
           fi
 
+  lint:
+    name: Lint the collection's shell
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Install shfmt
+        env:
+          SHFMT_VERSION: "3.13.1"
+        run: |
+          sudo curl -fsSL -o /usr/local/bin/shfmt \
+            "https://github.com/mvdan/sh/releases/download/v${SHFMT_VERSION}/shfmt_v${SHFMT_VERSION}_linux_amd64"
+          sudo chmod +x /usr/local/bin/shfmt
+
+      - name: Lint
+        run: |
+          set -euo pipefail
+          mapfile -t scripts < <(find . -path ./.git -prune -o -name '*.sh' -type f -print)
+          mapfile -t repos < <(find . -path ./.git -prune -o -name repo -type f -print)
+          check=(shellcheck -s bash -e SC1090 -e SC1091)
+          "${check[@]}" "${scripts[@]}"
+          "${check[@]}" -e SC2034 "${repos[@]}"
+          shfmt -i 4 -ci -bn -sr -d "${scripts[@]}" "${repos[@]}"
+          echo "::notice::${#scripts[@]} scripts and ${#repos[@]} repo files are clean"
+
   packages:
     name: package lists ${{ matrix.family }}
     runs-on: ubuntu-24.04
@@ -94,7 +122,7 @@ jobs:
 
   collection:
     name: ${{ matrix.image }} ${{ matrix.family }}
-    needs: legs
+    needs: [legs, lint, packages]
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -173,11 +201,9 @@ jobs:
                 -printf '%h\n' | sed 's|^\./||' | sort > "$NAMES"
               ;;
             bootc-base)
-              case "$FAMILY" in
-                rhel) set -- rhel-family ;;
-                *) set -- deb-family ;;
-              esac
-              find "$1" -mindepth 2 -name module.kdl -printf '%h\n' \
+              dir=deb-family
+              [ "$FAMILY" = rhel ] && dir=rhel-family
+              find "$dir" -mindepth 2 -name module.kdl -printf '%h\n' \
                 | sort -u | xargs -r python3 .github/closure.py "$FAMILY" > "$NAMES"
               ;;
             hardening)

@@ -1,9 +1,10 @@
 # ---- the initramfs ----
-kver="$(find /usr/lib/modules -mindepth 1 -maxdepth 1 -type d -printf '%f\n')"
-if [ -z "$kver" ] || [ "$(printf '%s\n' "$kver" | wc -l)" != 1 ]; then
-    echo "bootc wants exactly one kernel; /usr/lib/modules has: ${kver}" >&2
+mapfile -t kvers < <(find /usr/lib/modules -mindepth 1 -maxdepth 1 -type d -printf '%f\n')
+if [ "${#kvers[@]}" -ne 1 ]; then
+    echo "bootc wants exactly one kernel; /usr/lib/modules has: ${kvers[*]}" >&2
     exit 1
 fi
+kver="${kvers[0]}"
 [ -f "/usr/lib/modules/${kver}/vmlinuz" ] || {
     echo "the kernel package left no /usr/lib/modules/${kver}/vmlinuz" >&2
     exit 1
