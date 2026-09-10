@@ -5,7 +5,7 @@ install_packages() {
 	if [ -n "${BUILDC_ENABLE_REPO:-}" ]; then
 		args+=(--enablerepo="$BUILDC_ENABLE_REPO")
 	fi
-	dnf5 install -y "${args[@]}" "$@"
+	dnf install -y "${args[@]}" "$@"
 }
 
 install_groups() {
@@ -13,7 +13,7 @@ install_groups() {
 	if [ -n "${BUILDC_ENABLE_REPO:-}" ]; then
 		args+=(--enablerepo="$BUILDC_ENABLE_REPO")
 	fi
-	dnf5 group install -y "${args[@]}" "$@"
+	dnf group install -y "${args[@]}" "$@"
 }
 
 enable_copr() {
