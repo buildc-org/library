@@ -1,12 +1,12 @@
 description "Login policy: faillock lockout, password quality, rescue sulogin"
 
-supports "fedora" "debian" "ubuntu"
+supports "fedora" "rhel" "debian" "ubuntu"
 
 family "debian" "ubuntu" {
     packages "libpam-pwquality" "cracklib-runtime"
 }
 
-family "fedora" {
+family "fedora" "rhel" {
     satisfies {
         stig "SRG-OS-000071-GPOS-00039" \
             "SRG-OS-000072-GPOS-00040" \

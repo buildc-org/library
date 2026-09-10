@@ -1,10 +1,10 @@
 description "auditd, with the audit rules and auditd.conf settings of the DISA STIG"
 
-supports "fedora" "debian" "ubuntu"
+supports "fedora" "rhel" "debian" "ubuntu"
 
 requires "build-environment"
 
-family "fedora" {
+family "fedora" "rhel" {
     packages "audit"
 }
 
@@ -26,7 +26,7 @@ mode "/etc/audit/rules.d/privileged.rules" "0600"
 mode "/etc/audit/rules.d/setgid.rules" "0600"
 mode "/etc/audit/rules.d/setuid.rules" "0600"
 
-family "fedora" {
+family "fedora" "rhel" {
     satisfies {
         stig "SRG-OS-000057-GPOS-00027" \
             "SRG-OS-000004-GPOS-00004" \

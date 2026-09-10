@@ -1,11 +1,11 @@
 description "Login defaults: password ageing, length, failure delay and umask"
 
-supports "fedora" "debian" "ubuntu"
+supports "fedora" "rhel" "debian" "ubuntu"
 
 refuses "set_password_hashing_algorithm_logindefs" \
     because="the base is on yescrypt and this rule asks for SHA512, so passing it would weaken the image outside FIPS"
 
-family "fedora" {
+family "fedora" "rhel" {
     satisfies {
         stig "SRG-OS-000076-GPOS-00044" \
             "SRG-OS-000075-GPOS-00043" \
