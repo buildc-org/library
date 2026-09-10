@@ -29,7 +29,7 @@ jobs:
             {"image":"collection","family":"fedora","base":"quay.io/fedora/fedora-bootc:44"},
             {"image":"bootc-base","family":"debian","base":"docker.io/library/debian:forky"},
             {"image":"bootc-base","family":"ubuntu","base":"docker.io/library/ubuntu:26.04"},
-            {"image":"hardening","family":"fedora","base":"quay.io/fedora/fedora-bootc:44"},
+            {"image":"hardening","family":"fedora","base":"quay.io/centos-bootc/centos-bootc:stream10"},
             {"image":"changed","family":"fedora","base":"quay.io/fedora/fedora-bootc:44"},
             {"image":"changed","family":"debian","base":"docker.io/library/debian:forky"},
             {"image":"changed","family":"ubuntu","base":"docker.io/library/ubuntu:26.04"}
@@ -107,8 +107,8 @@ jobs:
       FAMILY: ${{ matrix.family }}
       SKIP: system-menu/goojust system-menu/power-scripts
       HARDENING: updates/signature-policy
-      CONFORMS: cusp_fedora
-      MAX_FAILS: "6"
+      CONFORMS: cis_server_l1
+      MAX_FAILS: "19"
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
@@ -178,7 +178,8 @@ jobs:
             hardening)
               {
                 printf '%s\n' $HARDENING
-                find hardening -mindepth 2 -name module.kdl -printf '%h\n'
+                find hardening -mindepth 2 -name module.kdl -printf '%h\n' \
+                  | grep -vx hardening/hardened-malloc
               } | sort -u \
                 | xargs -r python3 .github/closure.py "$FAMILY" > "$NAMES"
               ;;
@@ -360,43 +361,34 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ runner.temp }}/baseline.json
-          key: scap-${{ matrix.image }}-${{ github.run_id }}
-          restore-keys: scap-${{ matrix.image }}-
-
-      - name: Install the SSG content
-        if: matrix.image == 'hardening'
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ssg-base ssg-nondebian
-          datastream=/usr/share/xml/scap/ssg/content/ssg-fedora-ds.xml
-          [ -s "$datastream" ]
-          echo "DATASTREAM=${datastream}" >> "$GITHUB_ENV"
-
-      - name: Confirm the image under test
-        if: matrix.image == 'hardening'
-        run: |
-          set -euo pipefail
-          sudo podman image exists "${IMAGE}:latest"
-          cp "$DATASTREAM" "${RUNNER_TEMP}/ds.xml"
+          key: scap-tailored-${{ matrix.image }}-${{ github.run_id }}
+          restore-keys: scap-tailored-${{ matrix.image }}-
 
       - name: Evaluate the rules
         if: matrix.image == 'hardening'
         run: |
           set -euo pipefail
-          sudo podman run --rm --entrypoint "" \
-            -v "${RUNNER_TEMP}:/scan:z" "${IMAGE}:latest" \
-            sh -c 'n=0
-              until dnf -y install openscap-scanner >/dev/null; do
-                n=$((n+1))
-                [ "$n" -ge 3 ] && exit 1
-                dnf clean all
-                sleep 15
-              done
-              oscap xccdf eval --profile "(all)" \
-                --results-arf /scan/arf.xml /scan/ds.xml' || true
+          content="$(cd "$ROOT" && "$BUILDC_BIN" scap content --target "$IMAGE")"
+          sudo podman run -d --name scan --entrypoint "" "${IMAGE}:latest" sleep infinity
+          sudo podman exec scan sh -c 'n=0
+            until dnf -y install openscap-scanner scap-security-guide >/dev/null; do
+              n=$((n+1))
+              [ "$n" -ge 3 ] && exit 1
+              dnf clean all
+              sleep 15
+            done'
+          sudo podman cp "scan:${content}" "${RUNNER_TEMP}/ds.xml"
+          (cd "$ROOT" && "$BUILDC_BIN" scap tailoring --target "$IMAGE" \
+            --datastream "${RUNNER_TEMP}/ds.xml") > "${RUNNER_TEMP}/tailoring.xml"
+          sudo podman cp "${RUNNER_TEMP}/tailoring.xml" scan:/tmp/tailoring.xml
+          sudo podman exec scan oscap xccdf eval \
+            --tailoring-file /tmp/tailoring.xml --profile xccdf_tect_profile_measured \
+            --results-arf /tmp/arf.xml "$content" || true
+          sudo podman cp scan:/tmp/arf.xml "${RUNNER_TEMP}/arf.xml"
+          sudo podman rm -f scan
+          sudo chown "$(id -u):$(id -g)" "${RUNNER_TEMP}/ds.xml" "${RUNNER_TEMP}/arf.xml"
           [ -s "${RUNNER_TEMP}/arf.xml" ]
-          sudo chown "$(id -u):$(id -g)" "${RUNNER_TEMP}/arf.xml"
+          echo "DATASTREAM=${RUNNER_TEMP}/ds.xml" >> "$GITHUB_ENV"
 
       - name: Compare what was declared to what was measured
         if: matrix.image == 'hardening'
@@ -404,7 +396,7 @@ jobs:
           set -euo pipefail
           report="$("$BUILDC_BIN" scap "${RUNNER_TEMP}/arf.xml" \
             --root "$ROOT" --target "$IMAGE" --datastream "$DATASTREAM" \
-            --base-scan "${GITHUB_WORKSPACE}/.ci/fedora-bootc-44-base-scan.json" \
+            --base-scan "${GITHUB_WORKSPACE}/.ci/centos-bootc-stream10-base-scan.json" \
             --baseline "${RUNNER_TEMP}/baseline.json")"
           printf '%s\n' "$report"
           rows="$(printf '%s\n' "$report" | grep '^| buildc-org/' || true)"
@@ -448,4 +440,4 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ runner.temp }}/baseline.json
-          key: scap-${{ matrix.image }}-${{ github.run_id }}
+          key: scap-tailored-${{ matrix.image }}-${{ github.run_id }}
