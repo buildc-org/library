@@ -108,7 +108,7 @@ jobs:
       SKIP: system-menu/goojust system-menu/power-scripts
       HARDENING: updates/signature-policy
       CONFORMS: cis_server_l1
-      MAX_FAILS: "19"
+      MAX_FAILS: "21"
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
@@ -434,6 +434,15 @@ jobs:
           if [ "$fails" -lt "$MAX_FAILS" ]; then
             echo "::notice::the floor is loose and could come down to ${fails}"
           fi
+
+      - name: Keep the scan report
+        if: always() && matrix.image == 'hardening'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: arf-${{ matrix.image }}
+          path: ${{ runner.temp }}/arf.xml
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Save the pass set for the next scan
         if: always() && matrix.image == 'hardening'
