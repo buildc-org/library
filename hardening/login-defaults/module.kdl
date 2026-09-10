@@ -3,12 +3,12 @@ description "Login defaults: password ageing, length, failure delay and umask"
 supports "fedora" "debian" "ubuntu"
 
 refuses "set_password_hashing_algorithm_logindefs" \
-    because="the base is on yescrypt and this rule asks for SHA512, so passing it would weaken the image"
+    because="the base is on yescrypt and this rule asks for SHA512, so passing it would weaken the image outside FIPS"
 
 family "fedora" {
     satisfies {
-        stig "CCI-000199" \
-            "CCI-000198"
-        anssi "BP28(R35)"
+        stig "SRG-OS-000076-GPOS-00044" \
+            "SRG-OS-000075-GPOS-00043" \
+            "SRG-OS-000480-GPOS-00228"
     }
 }
