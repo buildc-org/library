@@ -1,6 +1,6 @@
 set_login_def() {
-	sed -i "/^[#[:space:]]*$1\b/d" /etc/login.defs
-	printf '%s\t%s\n' "$1" "$2" >> /etc/login.defs
+    sed -i "/^[#[:space:]]*$1\b/d" /etc/login.defs
+    printf '%s\t%s\n' "$1" "$2" >> /etc/login.defs
 }
 
 set_login_def PASS_MAX_DAYS 60

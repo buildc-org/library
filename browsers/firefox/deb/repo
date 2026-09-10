@@ -1,10 +1,10 @@
 source /ctx/lib/family.sh
 
 add_repo "mozilla" \
-	"https://packages.mozilla.org/apt" "mozilla" "main" \
-	"https://packages.mozilla.org/apt/repo-signing-key.gpg"
+    "https://packages.mozilla.org/apt" "mozilla" "main" \
+    "https://packages.mozilla.org/apt/repo-signing-key.gpg"
 
-cat > /etc/apt/preferences.d/mozilla <<'EOF'
+cat > /etc/apt/preferences.d/mozilla << 'EOF'
 Package: *
 Pin: origin packages.mozilla.org
 Pin-Priority: 1000

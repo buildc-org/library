@@ -3,21 +3,21 @@ source /ctx/lib/fetch-helpers.sh
 NEEDS_OSTREE=2025.3
 HAS_OSTREE="$(dpkg-query -W -f '${Version}' libostree-1-1)"
 if ! dpkg --compare-versions "$HAS_OSTREE" ge "$NEEDS_OSTREE"; then
-	echo "this base carries libostree ${HAS_OSTREE}, and bootc" \
-		"${ASSET_BOOTC_VERSION} needs >= ${NEEDS_OSTREE}" >&2
-	exit 1
+    echo "this base carries libostree ${HAS_OSTREE}, and bootc" \
+        "${ASSET_BOOTC_VERSION} needs >= ${NEEDS_OSTREE}" >&2
+    exit 1
 fi
 
 BUILD_DEPS=(
-	build-essential rustc cargo
-	libostree-dev libzstd-dev libssl-dev pkgconf go-md2man
+    build-essential rustc cargo
+    libostree-dev libzstd-dev libssl-dev pkgconf go-md2man
 )
 install_packages "${BUILD_DEPS[@]}"
 
 if [ "$ASSET_BOOTC_VERSION" != "$ASSET_BOOTC_VENDOR_VERSION" ]; then
-	echo "bootc is pinned at ${ASSET_BOOTC_VERSION} and its vendor tarball at" \
-		"${ASSET_BOOTC_VENDOR_VERSION}; both pins move together" >&2
-	exit 1
+    echo "bootc is pinned at ${ASSET_BOOTC_VERSION} and its vendor tarball at" \
+        "${ASSET_BOOTC_VENDOR_VERSION}; both pins move together" >&2
+    exit 1
 fi
 
 src=/tmp/bootc
@@ -25,7 +25,7 @@ fetch_extract "$ASSET_BOOTC_URL" "$ASSET_BOOTC_SHA256" "$src"
 cd "${src}/bootc-${ASSET_BOOTC_VERSION}" || exit
 
 fetch_extract "$ASSET_BOOTC_VENDOR_URL" "$ASSET_BOOTC_VENDOR_SHA256" .
-cat .cargo/vendor-config.toml >>.cargo/config.toml
+cat .cargo/vendor-config.toml >> .cargo/config.toml
 
 export CARGO_NET_OFFLINE=true
 export CARGO_BUILD_LOCKED=true
@@ -42,9 +42,9 @@ rm -rf "$src"
 
 # ---- bootupd, and the signed chain it installs ----
 if [ "$ASSET_BOOTUPD_VERSION" != "$ASSET_BOOTUPD_VENDOR_VERSION" ]; then
-	echo "bootupd is pinned at ${ASSET_BOOTUPD_VERSION} and its vendor tarball" \
-		"at ${ASSET_BOOTUPD_VENDOR_VERSION}; both pins move together" >&2
-	exit 1
+    echo "bootupd is pinned at ${ASSET_BOOTUPD_VERSION} and its vendor tarball" \
+        "at ${ASSET_BOOTUPD_VENDOR_VERSION}; both pins move together" >&2
+    exit 1
 fi
 
 src=/tmp/bootupd
@@ -53,7 +53,7 @@ cd "${src}/bootupd-${ASSET_BOOTUPD_VERSION}" || exit
 fetch_extract "$ASSET_BOOTUPD_VENDOR_URL" "$ASSET_BOOTUPD_VENDOR_SHA256" .
 
 mkdir -p .cargo
-cat >>.cargo/config.toml <<'CARGO'
+cat >> .cargo/config.toml << 'CARGO'
 [source.crates-io]
 replace-with = "vendored-sources"
 
@@ -75,16 +75,16 @@ grub_dir="/usr/lib/efi/grub2/$(dpkg-query -W -f '${Version}' grub-efi-amd64-sign
 install -D -m 0644 /usr/lib/shim/shimx64.efi.signed "${shim_dir}/${vendor}/shimx64.efi"
 install -D -m 0644 /usr/lib/shim/shimx64.efi.signed "${shim_dir}/BOOT/BOOTX64.EFI"
 if [ -f /usr/lib/shim/fbx64.efi.signed ]; then
-	install -D -m 0644 /usr/lib/shim/fbx64.efi.signed "${shim_dir}/BOOT/fbx64.efi"
+    install -D -m 0644 /usr/lib/shim/fbx64.efi.signed "${shim_dir}/BOOT/fbx64.efi"
 fi
 if [ -f /usr/lib/shim/mmx64.efi.signed ]; then
-	install -D -m 0644 /usr/lib/shim/mmx64.efi.signed "${shim_dir}/${vendor}/mmx64.efi"
+    install -D -m 0644 /usr/lib/shim/mmx64.efi.signed "${shim_dir}/${vendor}/mmx64.efi"
 fi
 install -D -m 0644 /usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed \
-	"${grub_dir}/${vendor}/grubx64.efi"
+    "${grub_dir}/${vendor}/grubx64.efi"
 
 install -D -m 0644 /usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed \
-	"${shim_dir}/BOOT/grubx64.efi"
+    "${shim_dir}/BOOT/grubx64.efi"
 install -D -m 0644 /usr/lib/shim/BOOTX64.CSV "${shim_dir}/${vendor}/BOOTX64.CSV"
 
 install -D -m 0644 src/grub2/grub-static-efi.cfg "${grub_dir}/${vendor}/grub.cfg"

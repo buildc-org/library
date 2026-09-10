@@ -1,4 +1,4 @@
-cat > /etc/apt/sources.list.d/debian-sid.sources <<'EOF'
+cat > /etc/apt/sources.list.d/debian-sid.sources << 'EOF'
 Types: deb
 URIs: http://deb.debian.org/debian
 Suites: sid
@@ -6,7 +6,7 @@ Components: main
 Signed-By: /usr/share/keyrings/debian-archive-keyring.pgp
 EOF
 
-cat > /etc/apt/preferences.d/debian-sid <<'EOF'
+cat > /etc/apt/preferences.d/debian-sid << 'EOF'
 Package: *
 Pin: release n=sid
 Pin-Priority: 1
