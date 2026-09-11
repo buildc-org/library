@@ -8,11 +8,8 @@ provides "selinux-policy"
 
 provides "container-runtime"
 
-provides-file "/usr/bin/bootc"
-provides-file "/usr/bin/bootupctl"
-provides-file "/usr/bin/podman"
-provides-file "/usr/bin/crun"
-provides-file "/usr/sbin/sshd"
+provides "bootc" "bootupctl" "podman" "crun"
+provides "ssh"
 
 requires "build-environment"
 

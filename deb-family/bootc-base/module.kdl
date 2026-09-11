@@ -4,10 +4,9 @@ supports "debian" "ubuntu"
 
 provides "bootc-base"
 
-provides-file "/usr/bin/bootc"
-provides-file "/usr/bin/bootupctl"
-provides-file "/usr/lib/sysimage/dpkg"
-provides-file "/usr/sbin/sshd"
+provides "bootc" "bootupctl"
+provides "dpkg-database" file="/usr/lib/sysimage/dpkg"
+provides "ssh"
 
 requires "build-environment"
 

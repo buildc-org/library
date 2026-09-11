@@ -2,7 +2,7 @@ description "The two ways into a machine, neither of which a base should decide 
 
 supports "fedora" "debian" "ubuntu"
 
-requires-file "/usr/sbin/sshd"
+requires "ssh"
 
 key "ssh" {
     generator "ssh-keygen"

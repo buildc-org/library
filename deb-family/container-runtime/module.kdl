@@ -6,7 +6,6 @@ provides "container-runtime"
 
 requires "build-environment"
 
-provides-file "/usr/bin/podman"
-provides-file "/usr/bin/crun"
+provides "podman" "crun"
 
 packages "podman" "crun"
