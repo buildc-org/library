@@ -12,7 +12,8 @@ EOF
     python3 << 'PYEOF'
 import json, os
 path = '/etc/containers/policy.json'
-p = json.load(open(path)) if os.path.exists(path) else {'default': [{'type': 'reject'}], 'transports': {}}
+seed = next((f for f in (path, '/usr/share/containers/policy.json') if os.path.exists(f)), None)
+p = json.load(open(seed)) if seed else {'default': [{'type': 'reject'}], 'transports': {}}
 p.setdefault('transports', {}).setdefault('docker', {})[os.environ['IMAGE_REGISTRY']] = [
     {'type': 'sigstoreSigned', 'keyPath': '/etc/pki/containers/cosign.pub', 'signedIdentity': {'type': 'matchRepository'}}
 ]
