@@ -201,8 +201,15 @@ jobs:
           set -euo pipefail
           case "$IMAGE" in
             collection)
-              find . -mindepth 2 -name module.kdl -not -path './.*' \
-                -printf '%h\n' | sed 's|^\./||' | sort > "$NAMES"
+              mapfile -t all < <(find . -mindepth 2 -name module.kdl -not -path './.*' \
+                -printf '%h\n' | sed 's|^\./||' | sort)
+              python3 .github/closure.py --split "$FAMILY" "$BASE" "${all[@]}" \
+                | awk -v n="$NAMES" '{ print $2 > ($1 == 0 ? n : n "." $1) }'
+              for alt in "${NAMES}".[0-9]*; do
+                [ -e "$alt" ] || continue
+                echo "::notice::$(wc -l < "$alt") modules in ${IMAGE}-${alt##*.}"
+                cat "$alt"
+              done
               ;;
             bootc-base)
               dir=deb-family
@@ -258,9 +265,15 @@ jobs:
           BASE: ${{ matrix.base }}
         run: |
           set -euo pipefail
+          shopt -s nullglob
           "$BUILDC_BIN" create repo "$IMAGE" --root "$ROOT" --no-tui \
             --owner buildc-org --host github.com \
             --image "$IMAGE" --base "$BASE"
+          alts=("${NAMES}".[0-9]*)
+          for alt in "${alts[@]}"; do
+            "$BUILDC_BIN" create image "${IMAGE}-${alt##*.}" --root "$ROOT" --no-tui \
+              --owner buildc-org --base "$BASE"
+          done
           if [ "$IMAGE" = hardening ]; then
             image="${ROOT}/${IMAGE}.image.kdl"
             bases="$(grep -c '^    base "' "$image" || true)"
@@ -278,15 +291,16 @@ jobs:
           fi
           case "$FAMILY" in
           debian|ubuntu)
-            image="${ROOT}/${IMAGE}.image.kdl"
-            sed -i "s|^        family \"fedora\"$|        family \"${FAMILY}\"|" "$image"
-            grep -q '^        requires "bootc-base"$' "$image" \
-              || sed -i "s|^        family \"${FAMILY}\"$|        family \"${FAMILY}\"\n        requires \"bootc-base\"|" "$image"
-            for want in "        family \"${FAMILY}\"" '        requires "bootc-base"'; do
-              [ "$(grep -cx "$want" "$image")" = 1 ] || {
-                echo "::error::${image} does not carry exactly one \`${want# *}\`"
-                exit 1
-              }
+            for image in "${ROOT}"/*.image.kdl; do
+              sed -i "s|^        family \"fedora\"$|        family \"${FAMILY}\"|" "$image"
+              grep -q '^        requires "bootc-base"$' "$image" \
+                || sed -i "s|^        family \"${FAMILY}\"$|        family \"${FAMILY}\"\n        requires \"bootc-base\"|" "$image"
+              for want in "        family \"${FAMILY}\"" '        requires "bootc-base"'; do
+                [ "$(grep -cx "$want" "$image")" = 1 ] || {
+                  echo "::error::${image} does not carry exactly one \`${want# *}\`"
+                  exit 1
+                }
+              done
             done
             if [ "$FAMILY" = ubuntu ]; then
               repo="${ROOT}/repo.kdl"
@@ -298,14 +312,19 @@ jobs:
             fi
             ;;
           esac
+          declare -A keyed=()
+          import_into() {
+          local image="$1" name
           while read -r name; do
             case " $SKIP " in *" $name "*) continue ;; esac
             grep -q "^supports .*\"${FAMILY}\"" "${name}/module.kdl" || continue
-            if grep -q "module \"${name}\"" "${ROOT}/${IMAGE}.image.kdl"; then
+            if grep -q "module \"${name}\"" "${ROOT}/${image}.image.kdl"; then
               continue
             fi
             "$BUILDC_BIN" import module "buildc-org/${name}" --root "$ROOT" \
-              --image "$IMAGE" --no-tui
+              --image "$image" --no-tui
+            [ -z "${keyed[$name]:-}" ] || continue
+            keyed[$name]=1
             case "$name" in
               boot/cachyos-kernel)
                 "$BUILDC_BIN" create key secureboot --root "$ROOT" --no-tui \
@@ -321,7 +340,12 @@ jobs:
                     -out "$ROOT/keys/public/etc/pki/containers/cosign.pub"
                 ;;
             esac
-          done < "$NAMES"
+          done < "$2"
+          }
+          import_into "$IMAGE" "$NAMES"
+          for alt in "${alts[@]}"; do
+            import_into "${IMAGE}-${alt##*.}" "$alt"
+          done
           cd "$ROOT" && "$BUILDC_BIN" generate
 
       - name: Run lint
@@ -333,7 +357,8 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           set -euo pipefail
-          mapfile -t names < "$NAMES"
+          shopt -s nullglob
+          mapfile -t names < <(sort -u "$NAMES" "${NAMES}".[0-9]*)
           if [ "${#names[@]}" -eq 0 ]; then
             echo "no modules in this leg"
             exit 0
@@ -378,6 +403,19 @@ jobs:
           echo "::endgroup::"
           cd "$ROOT" && sudo IMAGE_REGISTRY="$IMAGE_REGISTRY" \
             "$BUILDC_BIN" build --no-tui
+          shopt -s nullglob
+          previous="$IMAGE"
+          for alt in "${NAMES}".[0-9]*; do
+            target="${IMAGE}-${alt##*.}"
+            # Each image is removed before the next build to stay inside the runner's disk budget.
+            sudo podman rmi --ignore "${previous}:latest" > /dev/null
+            sudo podman image prune -f > /dev/null
+            echo "::group::${target} Containerfile"
+            cat "${ROOT}/generated/${target}/Containerfile"
+            echo "::endgroup::"
+            sudo IMAGE_REGISTRY="$IMAGE_REGISTRY" "$BUILDC_BIN" build --no-tui --target "$target"
+            previous="$target"
+          done
 
       - name: Lint the built base
         if: matrix.image == 'bootc-base'
