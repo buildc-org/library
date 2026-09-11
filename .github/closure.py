@@ -85,6 +85,11 @@ def main(argv):
         for capability in sorted(provides):
             provider.setdefault(capability, name)
 
+    for name in wanted:
+        if name in modules and family in modules[name][0]:
+            for capability in modules[name][1]:
+                provider[capability] = name
+
     order, seen = [], set()
 
     def visit(name):
