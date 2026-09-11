@@ -1,2 +1,4 @@
 disable sshd.service
 disable sshd.socket
+
+enable tmp.mount

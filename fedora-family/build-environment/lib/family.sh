@@ -1,11 +1,19 @@
 #!/bin/bash
 
+stash_systemctl() {
+    [ -e /usr/bin/systemctl ] || return 0
+    [ "$(readlink /usr/bin/systemctl)" = /usr/bin/true ] && return 0
+    mv -f /usr/bin/systemctl /usr/bin/systemctl.bak
+    ln -s /usr/bin/true /usr/bin/systemctl
+}
+
 install_packages() {
     local args=()
     if [ -n "${BUILDC_ENABLE_REPO:-}" ]; then
         args+=(--enablerepo="$BUILDC_ENABLE_REPO")
     fi
     dnf install -y "${args[@]}" "$@"
+    stash_systemctl
 }
 
 install_groups() {
@@ -14,6 +22,7 @@ install_groups() {
         args+=(--enablerepo="$BUILDC_ENABLE_REPO")
     fi
     dnf group install -y "${args[@]}" "$@"
+    stash_systemctl
 }
 
 enable_copr() {

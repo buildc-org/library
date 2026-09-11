@@ -29,6 +29,11 @@ find /run -mindepth 1 -maxdepth 1 ! -name secrets ! -name .containerenv \
 rm -f /etc/ssh/ssh_host_*
 rm -f /etc/fstab
 
+# ---- the bootloader payload ----
+mkdir -p /usr/lib/ostree-boot
+mv /boot/efi /usr/lib/ostree-boot/efi
+bootupctl backend generate-update-metadata
+
 # ---- the ostree-shaped root ----
 # shellcheck disable=SC2114 # replacing the system directories is the point
 rm -rf /home /root /srv /mnt /boot
