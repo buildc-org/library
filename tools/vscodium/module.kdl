@@ -4,10 +4,6 @@ supports "fedora" "debian" "ubuntu"
 
 requires "build-environment"
 
-family "fedora" {
-    after "hardened-malloc"
-
-    packages "codium" enablerepo="vscodium"
-}
+family "fedora" { packages "codium" enablerepo="vscodium"; }
 
 family "debian" "ubuntu" { packages "codium" }
