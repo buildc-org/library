@@ -57,6 +57,10 @@ rm -f /etc/fstab
 
 rm -f /etc/systemd/system/multi-user.target.wants/ssh.service
 
+if [ -x /usr/sbin/NetworkManager ]; then
+    rm -f /usr/lib/systemd/network/89-ethernet.network
+fi
+
 rm -f /etc/dpkg/dpkg.cfg.d/docker-apt-speedup
 rm -f /etc/apt/apt.conf.d/docker-clean \
     /etc/apt/apt.conf.d/docker-gzip-indexes \
