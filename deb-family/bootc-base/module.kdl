@@ -48,11 +48,34 @@ asset "bootupd-vendor" {
     }
 }
 
+option "prebuilt-tools" type="bool" {
+    description "Fetch the compiled bootc and bootupd published from this module's pins instead of compiling them here"
+    default #false
+}
+
+asset "bootc-tools-debian" {
+    pin {
+        manual "the tools workflow builds it from the four pins above; this records the release it wrote"
+        version "none"
+        url "https://github.com/buildc-org/modules/releases/download/deb-bootc-tools-{version}/deb-bootc-tools-debian-{version}.tar.zst"
+        sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+}
+
+asset "bootc-tools-ubuntu" {
+    pin {
+        manual "the tools workflow builds it from the four pins above; this records the release it wrote"
+        version "none"
+        url "https://github.com/buildc-org/modules/releases/download/deb-bootc-tools-{version}/deb-bootc-tools-ubuntu-{version}.tar.zst"
+        sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+}
+
 packages "dracut" "ostree" "composefs" "systemd-boot" "systemd-boot-efi" \
     "shim-signed" "grub-efi-amd64-signed" "grub-common" "systemd-resolved" \
     "libnss-resolve" "libnss-myhostname" "iproute2" "skopeo" \
     "ca-certificates" "zstd" "curl" "btrfs-progs" "xfsprogs" "e2fsprogs" \
-    "dosfstools" "fdisk" "efibootmgr" "cryptsetup-bin" "dmsetup" \
+    "dosfstools" "fdisk" "efibootmgr" "cryptsetup-bin" "systemd-cryptsetup" "dmsetup" \
     "openssh-server" "sudo" "less" "man-db"
 
 family "debian" { packages "linux-image-amd64" "firmware-linux-free" }

@@ -12,9 +12,10 @@ dracut --force --kver "$kver" "$initramfs"
 
 listing="$(lsinitrd "$initramfs")"
 for path in usr/lib/bootc/initramfs-setup \
-    usr/lib/systemd/system/bootc-root-setup.service; do
+    usr/lib/systemd/system/bootc-root-setup.service \
+    usr/bin/systemd-cryptsetup; do
     if ! grep -q "[ /]${path}\$" <<< "$listing"; then
-        echo "the initramfs carries no ${path}, so it cannot mount a deployment" >&2
+        echo "the initramfs carries no ${path}, so a machine from this image cannot boot" >&2
         exit 1
     fi
 done
