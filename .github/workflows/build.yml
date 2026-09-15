@@ -137,7 +137,8 @@ jobs:
       IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
       IMAGE: ${{ matrix.image }}
       FAMILY: ${{ matrix.family }}
-      SKIP: system-menu/goojust system-menu/power-scripts
+      # These components cannot build in isolation, so the leg leaves them to a maintainer.
+      SKIP: system-menu/goojust system-menu/power-scripts boot/uki boot/secureboot-enrolment
       HARDENING: updates/signature-policy
       CONFORMS: cis_server_l1
       MAX_FAILS: "7"
