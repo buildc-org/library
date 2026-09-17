@@ -13,7 +13,14 @@ key "secureboot" {
     private "MOK.priv"
 }
 
+key "pcr" {
+    generator "openssl" profile="pcr-signing" bits=2048
+    public "/usr/share/secureboot/pcr.pub" format="pem"
+    private "pcr.priv"
+}
+
 secret "mok_privkey"
+secret "pcr_privkey"
 
 family "fedora" {
     packages "systemd-ukify" "binutils" "systemd-boot-unsigned" \

@@ -9,6 +9,7 @@ provides "selinux-policy"
 provides "container-runtime"
 
 provides "bootc" "bootupctl" "podman" "crun"
+provides "luks-initramfs"
 provides "ssh"
 
 requires "build-environment"
