@@ -25,9 +25,9 @@ install -D -m 0644 /usr/lib/systemd/boot/efi/systemd-bootx64.efi \
     /boot/EFI/systemd/systemd-bootx64.efi
 install -D -m 0644 /usr/lib/systemd/boot/efi/systemd-bootx64.efi \
     /boot/EFI/BOOT/BOOTX64.EFI
-bootc --version > /usr/share/buildc/composefs-sealer-version
 install -D -m 0644 "$MODDIR/canary/digest" \
     /usr/share/buildc/composefs-canary-digest
+bootc --version > /usr/share/buildc/composefs-sealer-version
 if [ -n "${BOOT_CHAIN:-}" ]; then
     printf '%s\n' "$BOOT_CHAIN" > /usr/share/buildc/boot-chain
 fi
