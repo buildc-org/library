@@ -1,4 +1,3 @@
-# ---- the initramfs ----
 kver="$(find /usr/lib/modules -mindepth 1 -maxdepth 1 -type d -printf '%f\n')"
 if [ -z "$kver" ] || [ "$(printf '%s\n' "$kver" | wc -l)" != 1 ]; then
     echo "bootc wants exactly one kernel; /usr/lib/modules has: ${kver}" >&2
@@ -20,7 +19,14 @@ for path in usr/lib/bootc/initramfs-setup \
     fi
 done
 
-# ---- package state out of /var ----
+for name in libcryptsetup-token-systemd-tpm2.so libtss2-esys.so libtss2-rc.so \
+    libtss2-mu.so libtss2-tcti-device.so; do
+    if ! grep -q "/${name}[.0-9]*\$" <<< "$listing"; then
+        echo "the initramfs carries no ${name}, so a TPM2 answer cannot unlock this image" >&2
+        exit 1
+    fi
+done
+
 mkdir -p /usr/lib/sysimage
 for pair in \
     dpkg:/var/lib/dpkg \
@@ -44,7 +50,6 @@ if [ "$packages" -eq 0 ]; then
 fi
 echo "dpkg answers for ${packages} packages from /usr/lib/sysimage/dpkg"
 
-# ---- what a build must not bake in ----
 : > /etc/machine-id
 find /run -mindepth 1 -maxdepth 1 ! -name secrets ! -name .containerenv \
     -exec rm -rf {} +
@@ -68,8 +73,7 @@ rm -f /etc/apt/apt.conf.d/docker-clean \
     /etc/apt/apt.conf.d/docker-no-languages \
     /etc/apt/apt.conf.d/docker-autoremove-suggests
 
-# ---- the ostree-shaped root ----
-# shellcheck disable=SC2114 # replacing the system directories is the point
+# shellcheck disable=SC2114
 rm -rf /boot /home /root /srv /mnt /usr/local
 mkdir -p /boot /sysroot /var/home /var/srv /var/mnt /var/usrlocal /var/roothome
 chmod 0700 /var/roothome

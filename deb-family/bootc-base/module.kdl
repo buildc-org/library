@@ -77,7 +77,7 @@ packages "dracut" "ostree" "composefs" "systemd-boot" "systemd-boot-efi" \
     "libnss-resolve" "libnss-myhostname" "iproute2" "skopeo" \
     "ca-certificates" "zstd" "curl" "btrfs-progs" "xfsprogs" "e2fsprogs" \
     "dosfstools" "fdisk" "efibootmgr" "cryptsetup-bin" "systemd-cryptsetup" "dmsetup" \
-    "openssh-server" "sudo" "less" "man-db"
+    "openssh-server" "sudo" "less" "man-db" "tpm2-tools"
 
 family "debian" { packages "linux-image-amd64" "firmware-linux-free" }
 family "ubuntu" { packages "linux-image-generic" "linux-firmware-minimal" }
