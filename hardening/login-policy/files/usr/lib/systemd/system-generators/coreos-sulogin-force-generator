@@ -1,5 +1,4 @@
 #!/usr/bin/bash
-
 export PATH="/usr/bin:/usr/sbin:${PATH}"
 if [ -n "$1" ]; then
     exec 1> /dev/kmsg
