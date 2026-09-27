@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+  ],
+
+  // Renovate updates only the workflow actions here. The `renovate`
+  // annotations on component pins serve a repository that imports the
+  // component.
+  "enabledManagers": ["github-actions"],
+  // The pull request title check requires a typed subject, and Renovate
+  // otherwise guesses the commit style from the history.
+  "semanticCommits": "enabled",
+  "rebaseWhen": "never",
+  "timezone": "Etc/UTC",
+  "schedule": ["before 6am"],
+
+  "packageRules": [
+    {
+      "matchPackageNames": ["*"],
+      "groupName": "scheduled updates",
+      "automerge": true,
+    },
+  ],
+}

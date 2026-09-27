@@ -13,6 +13,9 @@ on:
     - cron: '30 4 * * 1'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   legs:
     name: Choose the legs for this event
