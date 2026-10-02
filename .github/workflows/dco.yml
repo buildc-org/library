@@ -2,7 +2,7 @@ name: DCO
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened, synchronize, edited]
 
 permissions: {}
 
@@ -28,9 +28,20 @@ jobs:
           while read -r sha; do
             want="Signed-off-by: $(git log -1 --format='%an <%ae>' "$sha")"
             trailers="$(git log -1 --format='%(trailers:key=Signed-off-by)' "$sha")"
-            if ! grep -qxF "$want" <<< "$trailers"; then
-              echo "::error::${sha} is not signed off by its author. Add '${want}' with 'git commit --amend -s' or 'git rebase --signoff'."
-              missing=1
+            if grep -qxF "$want" <<< "$trailers"; then
+              continue
             fi
-          done < <(git rev-list --no-merges "$HEAD" --not "origin/${BASE_REF}")
+
+            read -ra commit <<< "$(git rev-list --parents -n 1 "$sha")"
+            parents=("${commit[@]:1}")
+            # GitHub's update-branch writes a merge commit without a sign-off, so a merge that adds no change is exempt.
+            if [ "${#parents[@]}" -eq 2 ] &&
+              merged="$(git merge-tree --write-tree "${parents[0]}" "${parents[1]}" 2>/dev/null)" &&
+              [ "$merged" = "$(git rev-parse "${sha}^{tree}")" ]; then
+              continue
+            fi
+
+            echo "::error::${sha} is not signed off by its author. Add '${want}' with 'git commit --amend -s' or 'git rebase --signoff'."
+            missing=1
+          done < <(git rev-list "$HEAD" --not "origin/${BASE_REF}")
           exit "$missing"
