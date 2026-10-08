@@ -155,7 +155,7 @@ jobs:
               export DEBIAN_FRONTEND=noninteractive
               apt-get update -qq
               mkdir -p /ctx/lib
-              cp /src/deb-family/build-environment/lib/family.sh /ctx/lib/
+              cp /src/modules/deb/build-environment/lib/family.sh /ctx/lib/
               while read -r repo; do source "/src/$repo"; done < /src/repos.txt
               if [ -s /src/repos.txt ]; then apt-get update -qq; fi
               rc=0
@@ -236,7 +236,7 @@ jobs:
           (cd "$dir" && printf '%s  %s\n' "$(cat ./*.sha256)" ./*.tar.gz \
             | sha256sum --check --status)
           tar -xzf "$dir"/*.tar.gz -C "$dir"
-          printf 'sources {\n    buildc-org "%s"\n}\n' "$GITHUB_WORKSPACE" \
+          printf 'sources {\n    buildc-org "%s"\n}\n' "$GITHUB_WORKSPACE/modules" \
             > "${dir}/assets/repo.sources.kdl"
           {
             echo "ROOT=${RUNNER_TEMP}/collection"
@@ -253,8 +253,8 @@ jobs:
           set -euo pipefail
           case "$IMAGE" in
             collection)
-              mapfile -t all < <(find . -mindepth 2 -name module.kdl -not -path './.*' \
-                -printf '%h\n' | sed 's|^\./||' | sort)
+              mapfile -t all < <(find modules -mindepth 2 -name module.kdl -not -path '*/.*' \
+                -printf '%h\n' | sed 's|^modules/||' | sort)
               python3 .github/closure.py --split "$FAMILY" "$BASE" "${all[@]}" \
                 | awk -v n="$NAMES" '{ print $2 > ($1 == 0 ? n : n "." $1) }'
               for alt in "${NAMES}".[0-9]*; do
@@ -264,15 +264,17 @@ jobs:
               done
               ;;
             bootc-base)
-              dir=deb-family
-              [ "$FAMILY" = rhel ] && dir=rhel-family
-              find "$dir" -mindepth 2 -name module.kdl -printf '%h\n' \
-                | sort -u | xargs -r python3 .github/closure.py "$FAMILY" "$BASE" > "$NAMES"
+              dir=deb
+              [ "$FAMILY" = rhel ] && dir=rhel
+              find "modules/$dir" -mindepth 2 -name module.kdl -printf '%h\n' \
+                | sed 's|^modules/||' | sort -u \
+                | xargs -r python3 .github/closure.py "$FAMILY" "$BASE" > "$NAMES"
               ;;
             hardening)
               {
                 printf '%s\n' $HARDENING
-                find hardening -mindepth 2 -name module.kdl -printf '%h\n'
+                find modules/hardening -mindepth 2 -name module.kdl -printf '%h\n' \
+                  | sed 's|^modules/||'
               } | sort -u \
                 | xargs -r python3 .github/closure.py "$FAMILY" "$BASE" > "$NAMES"
               ;;
@@ -285,13 +287,15 @@ jobs:
                   dir="$(dirname "$file")"
                   while [ "$dir" != "." ]; do
                     if [ -f "${dir}/module.kdl" ]; then
-                      echo "$dir"
+                      echo "${dir#modules/}"
                       break
                     fi
                     dir="$(dirname "$dir")"
                   done
                 done | sort -u \
-                  | xargs python3 .github/closure.py "$FAMILY" "$BASE" > "$NAMES"
+                  | xargs python3 .github/closure.py "$FAMILY" "$BASE" \
+                  | xargs python3 .github/closure.py --split "$FAMILY" "$BASE" \
+                  | awk -v n="$NAMES" '{ print $2 > ($1 == 0 ? n : n "." $1) }'
               fi
               ;;
           esac
@@ -303,11 +307,11 @@ jobs:
         if: matrix.image == 'hardening'
         run: |
           set -euo pipefail
-          claiming="$(grep -rlE '^[[:space:]]*satisfies' --include=module.kdl . \
-            | sed 's|^\./||;s|/module\.kdl$||' | sort)"
+          claiming="$(grep -rlE '^[[:space:]]*satisfies' --include=module.kdl modules \
+            | sed 's|^modules/||;s|/module\.kdl$||' | sort)"
           stray="$(comm -23 <(printf '%s\n' "$claiming") <(sort "$NAMES") || true)"
           for name in $claiming; do
-            if ! grep -qE '^supports .*"rhel"' "${name}/module.kdl"; then
+            if ! grep -qE '^supports .*"rhel"' "modules/${name}/module.kdl"; then
               stray="${stray:+${stray}$'\n'}${name}"
             fi
           done
@@ -376,7 +380,7 @@ jobs:
           local image="$1" name
           while read -r name; do
             case " $SKIP " in *" $name "*) continue ;; esac
-            grep -q "^supports .*\"${FAMILY}\"" "${name}/module.kdl" || continue
+            grep -q "^supports .*\"${FAMILY}\"" "modules/${name}/module.kdl" || continue
             if grep -q "module \"${name}\"" "${ROOT}/${image}.image.kdl"; then
               continue
             fi
@@ -422,7 +426,8 @@ jobs:
             echo "no modules in this leg"
             exit 0
           fi
-          mapfile -t dirs < <(find "${names[@]}" -name 'test_*.py' -type f \
+          mapfile -t rooted < <(printf 'modules/%s\n' "${names[@]}")
+          mapfile -t dirs < <(find "${rooted[@]}" -name 'test_*.py' -type f \
             -exec dirname {} \; | sort -u)
           for dir in ${dirs[@]+"${dirs[@]}"}; do
             python3 -m unittest discover -s "$dir" -v

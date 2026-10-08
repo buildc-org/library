@@ -1,9 +1,0 @@
-description "Account expiry: a password 30 days expired disables the account"
-
-supports "fedora" "rhel" "debian" "ubuntu"
-
-family "fedora" "rhel" {
-    satisfies {
-        pci-dss "Req-8.1.4"
-    }
-}

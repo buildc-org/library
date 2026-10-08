@@ -1,8 +1,0 @@
-description "runs SSG's own remediation for the profile the image conforms to, leaving every rule a module claims or refuses alone"
-
-supports "fedora" "rhel"
-
-network "scripts"
-
-provides "scap-remediation"
-
