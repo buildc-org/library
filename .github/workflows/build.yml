@@ -236,8 +236,6 @@ jobs:
           (cd "$dir" && printf '%s  %s\n' "$(cat ./*.sha256)" ./*.tar.gz \
             | sha256sum --check --status)
           tar -xzf "$dir"/*.tar.gz -C "$dir"
-          printf 'sources {\n    buildc-org "%s"\n}\n' "$GITHUB_WORKSPACE/modules" \
-            > "${dir}/assets/repo.sources.kdl"
           {
             echo "ROOT=${RUNNER_TEMP}/collection"
             echo "NAMES=${RUNNER_TEMP}/names"
@@ -328,8 +326,49 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           "$BUILDC_BIN" create repo "$IMAGE" --root "$ROOT" --no-tui \
-            --owner buildc-org --host github.com \
-            --image "$IMAGE" --base "$BASE"
+            --owner buildc-org --host github.com
+          # The splice points the scaffold at this checkout, so the leg tests the tree under review.
+          awk -v root="$GITHUB_WORKSPACE" '
+            $0 == "sources {" {
+              replaced++
+              print "sources {"
+              print "    modules \"buildc-modules\" {"
+              print "        dir \"" root "/modules\""
+              print "    }"
+              print "    base-images \"core\" {"
+              print "        dir \"" root "/base-images/core\""
+              print "    }"
+              print "    capabilities \"core\" {"
+              print "        dir \"" root "/capabilities\""
+              print "    }"
+              print "}"
+              replacing = 1
+              next
+            }
+            replacing && $0 == "}" { replacing = 0; next }
+            !replacing
+            END { if (replacing || replaced != 1) exit 1 }
+          ' "${ROOT}/repo.kdl" > "${ROOT}/repo.kdl.new"
+          mv "${ROOT}/repo.kdl.new" "${ROOT}/repo.kdl"
+          for declaration in \
+            '    modules "buildc-modules" {' \
+            '    base-images "core" {' \
+            '    capabilities "core" {' \
+            "        dir \"${GITHUB_WORKSPACE}/modules\"" \
+            "        dir \"${GITHUB_WORKSPACE}/base-images/core\"" \
+            "        dir \"${GITHUB_WORKSPACE}/capabilities\""; do
+            if [ "$(grep -Fxc "$declaration" "${ROOT}/repo.kdl" || true)" != 1 ]; then
+              echo "::error::repo.kdl does not carry exactly one ${declaration}"
+              exit 1
+            fi
+          done
+          if grep -qE '^[[:space:]]+(url|path) ' "${ROOT}/repo.kdl"; then
+            echo '::error::repo.kdl still carries a remote source'
+            exit 1
+          fi
+          "$BUILDC_BIN" create image "$IMAGE" --root "$ROOT" --no-tui \
+            --owner buildc-org --base "$BASE"
+          "$BUILDC_BIN" fetch modules --root "$ROOT" --no-tui
           # The generated repo uses a strict network policy, so an undeclared fetch fails the build here.
           printf 'security-policy {\n    network "strict"\n}\n' >> "${ROOT}/repo.kdl"
           alts=("${NAMES}".[0-9]*)
@@ -352,29 +391,6 @@ jobs:
               exit 1
             fi
           fi
-          case "$FAMILY" in
-          debian|ubuntu)
-            for image in "${ROOT}"/*.image.kdl; do
-              sed -i "s|^        family \"fedora\"$|        family \"${FAMILY}\"|" "$image"
-              grep -q '^        requires "bootc-base"$' "$image" \
-                || sed -i "s|^        family \"${FAMILY}\"$|        family \"${FAMILY}\"\n        requires \"bootc-base\"|" "$image"
-              for want in "        family \"${FAMILY}\"" '        requires "bootc-base"'; do
-                [ "$(grep -cx "$want" "$image")" = 1 ] || {
-                  echo "::error::${image} does not carry exactly one \`${want# *}\`"
-                  exit 1
-                }
-              done
-            done
-            if [ "$FAMILY" = ubuntu ]; then
-              repo="${ROOT}/repo.kdl"
-              sed -i '/^    build-disk$/d' "$repo"
-              [ "$(grep -cx '    build-disk' "$repo" || true)" = 0 ] || {
-                echo "::error::${repo} still declares build-disk"
-                exit 1
-              }
-            fi
-            ;;
-          esac
           declare -A keyed=()
           import_into() {
           local image="$1" name
@@ -384,7 +400,7 @@ jobs:
             if grep -q "module \"${name}\"" "${ROOT}/${image}.image.kdl"; then
               continue
             fi
-            "$BUILDC_BIN" import module "buildc-org/${name}" --root "$ROOT" \
+            "$BUILDC_BIN" import module "buildc-modules/${name}" --root "$ROOT" \
               --image "$image" --no-tui
             [ -z "${keyed[$name]:-}" ] || continue
             keyed[$name]=1
@@ -550,7 +566,7 @@ jobs:
             --base-scan "${GITHUB_WORKSPACE}/.ci/centos-bootc-stream10-base-scan.json" \
             --baseline "${RUNNER_TEMP}/baseline.json")"
           printf '%s\n' "$report"
-          rows="$(printf '%s\n' "$report" | grep '^| buildc-org/' || true)"
+          rows="$(printf '%s\n' "$report" | grep '^| buildc-modules/' || true)"
           if [ -z "$rows" ]; then
             echo '::error::the report declared no claim at all'; exit 1
           fi
