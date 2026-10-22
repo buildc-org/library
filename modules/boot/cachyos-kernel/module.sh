@@ -8,8 +8,8 @@ else
     dnf5 -y --setopt=tsflags=noscripts install --enablerepo="$COPR_BIESZCZADERS_KERNEL_CACHYOS" \
         kernel-cachyos \
         kernel-cachyos-core \
-        kernel-cachyos-modules \
-        kernel-cachyos-devel-matched
+        kernel-cachyos-modules
+    dnf5 -y install --enablerepo="$COPR_BIESZCZADERS_KERNEL_CACHYOS" kernel-cachyos-devel-matched
 
     echo "kernel-cachyos-core" > /usr/lib/kernel-build/kernel-package
 
