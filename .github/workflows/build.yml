@@ -338,9 +338,6 @@ jobs:
               print "    base-images \"core\" {"
               print "        dir \"" root "/base-images/core\""
               print "    }"
-              print "    capabilities \"core\" {"
-              print "        dir \"" root "/capabilities\""
-              print "    }"
               print "}"
               replacing = 1
               next
@@ -353,10 +350,8 @@ jobs:
           for declaration in \
             '    modules "buildc-modules" {' \
             '    base-images "core" {' \
-            '    capabilities "core" {' \
             "        dir \"${GITHUB_WORKSPACE}/modules\"" \
-            "        dir \"${GITHUB_WORKSPACE}/base-images/core\"" \
-            "        dir \"${GITHUB_WORKSPACE}/capabilities\""; do
+            "        dir \"${GITHUB_WORKSPACE}/base-images/core\""; do
             if [ "$(grep -Fxc "$declaration" "${ROOT}/repo.kdl" || true)" != 1 ]; then
               echo "::error::repo.kdl does not carry exactly one ${declaration}"
               exit 1
@@ -368,7 +363,6 @@ jobs:
           fi
           "$BUILDC_BIN" create image "$IMAGE" --root "$ROOT" --no-tui \
             --owner buildc-org --base "$BASE"
-          "$BUILDC_BIN" fetch modules --root "$ROOT" --no-tui
           # The generated repo uses a strict network policy, so an undeclared fetch fails the build here.
           printf 'security-policy {\n    network "strict"\n}\n' >> "${ROOT}/repo.kdl"
           alts=("${NAMES}".[0-9]*)
