@@ -10,7 +10,7 @@ permissions: read-all
 
 jobs:
   analysis:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       security-events: write
       # Scorecard signs the results it publishes with the job's OIDC token.

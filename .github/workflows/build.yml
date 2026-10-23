@@ -19,7 +19,7 @@ permissions:
 jobs:
   legs:
     name: Choose the legs for this event
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     outputs:
@@ -50,7 +50,7 @@ jobs:
 
   lint:
     name: Lint the collection's shell and Python
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     steps:
@@ -126,7 +126,7 @@ jobs:
 
   packages:
     name: package lists ${{ matrix.family }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     strategy:
@@ -174,7 +174,7 @@ jobs:
   collection:
     name: ${{ matrix.image }} ${{ matrix.family }}
     needs: [legs, lint, packages]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     strategy:
