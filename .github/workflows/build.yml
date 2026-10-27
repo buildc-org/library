@@ -71,9 +71,9 @@ jobs:
       - name: Lint
         run: |
           set -euo pipefail
-          mapfile -t scripts < <(find . -path ./.git -prune -o -name '*.sh' -type f \
+          mapfile -t scripts < <(find . -path ./.git -prune -o -name '*.sh' ! -name repo.sh -type f \
             ! \( -path '*/files/*' \( -path '*/libexec/*' -o -path '*/system-generators/*' \) \) -print)
-          mapfile -t repos < <(find . -path ./.git -prune -o -name repo -type f -print)
+          mapfile -t repos < <(find . -path ./.git -prune -o -name repo.sh -type f -print)
           mapfile -t helpers < <(find . -path ./.git -prune -o -path '*/files/*' -type f \
             \( -path '*/libexec/*' -o -path '*/system-generators/*' \) -print)
           shellcheck -s bash "${scripts[@]}"
@@ -122,7 +122,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m unittest discover -s .github
-          find . -path ./.git -prune -o -name module.kdl -print0 | xargs -0 python3 .github/hashed.py
+          find . -path ./.git -prune -o -name manifest.kdl -print0 | xargs -0 python3 .github/hashed.py
 
   packages:
     name: package lists ${{ matrix.family }}
@@ -149,21 +149,21 @@ jobs:
           set -euo pipefail
           python3 .github/packages.py "$FAMILY" > lists.txt
           python3 .github/packages.py "$FAMILY" --repos > repos.txt
-          echo "::notice::$(wc -l < lists.txt) modules declare packages for ${FAMILY}, $(wc -l < repos.txt) of them out of an archive of their own"
+          echo "::notice::$(wc -l < lists.txt) components declare packages for ${FAMILY}, $(wc -l < repos.txt) of them out of an archive of their own"
           sudo podman run --rm -i -v "${PWD}:/src:ro" "$BASE" \
             bash -euc '
               export DEBIAN_FRONTEND=noninteractive
               apt-get update -qq
               mkdir -p /ctx/lib
-              cp /src/modules/deb/build-environment/lib/family.sh /ctx/lib/
+              cp /src/components/deb/build-environment/lib/family.sh /ctx/lib/
               while read -r repo; do source "/src/$repo"; done < /src/repos.txt
               if [ -s /src/repos.txt ]; then apt-get update -qq; fi
               rc=0
-              while read -r module packages; do
+              while read -r component packages; do
                 if apt-get install --dry-run -qq $packages > /dev/null 2>&1; then
-                  printf "ok   %s\n" "$module"
+                  printf "ok   %s\n" "$component"
                 else
-                  printf "FAIL %s\n" "$module"
+                  printf "FAIL %s\n" "$component"
                   apt-get install --dry-run $packages 2>&1 | grep -E "^E:" | head -3
                   rc=1
                 fi
@@ -243,7 +243,7 @@ jobs:
             echo "BUILDC_ASSETS=${dir}/assets"
           } >> "${GITHUB_ENV}"
 
-      - name: Choose this leg's modules
+      - name: Choose this leg's components
         env:
           FROM: ${{ github.event.pull_request.base.sha }}
           BASE: ${{ matrix.base }}
@@ -251,28 +251,28 @@ jobs:
           set -euo pipefail
           case "$IMAGE" in
             collection)
-              mapfile -t all < <(find modules -mindepth 2 -name module.kdl -not -path '*/.*' \
-                -printf '%h\n' | sed 's|^modules/||' | sort)
+              mapfile -t all < <(find components -mindepth 2 -name manifest.kdl -not -path '*/.*' \
+                -not -path 'components/base-image/*' -printf '%h\n' | sed 's|^components/||' | sort)
               python3 .github/closure.py --split "$FAMILY" "$BASE" "${all[@]}" \
                 | awk -v n="$NAMES" '{ print $2 > ($1 == 0 ? n : n "." $1) }'
               for alt in "${NAMES}".[0-9]*; do
                 [ -e "$alt" ] || continue
-                echo "::notice::$(wc -l < "$alt") modules in ${IMAGE}-${alt##*.}"
+                echo "::notice::$(wc -l < "$alt") components in ${IMAGE}-${alt##*.}"
                 cat "$alt"
               done
               ;;
             bootc-base)
               dir=deb
               [ "$FAMILY" = rhel ] && dir=rhel
-              find "modules/$dir" -mindepth 2 -name module.kdl -printf '%h\n' \
-                | sed 's|^modules/||' | sort -u \
+              find "components/$dir" -mindepth 2 -name manifest.kdl -printf '%h\n' \
+                | sed 's|^components/||' | sort -u \
                 | xargs -r python3 .github/closure.py "$FAMILY" "$BASE" > "$NAMES"
               ;;
             hardening)
               {
                 printf '%s\n' $HARDENING
-                find modules/hardening -mindepth 2 -name module.kdl -printf '%h\n' \
-                  | sed 's|^modules/||'
+                find components/hardening -mindepth 2 -name manifest.kdl -printf '%h\n' \
+                  | sed 's|^components/||'
               } | sort -u \
                 | xargs -r python3 .github/closure.py "$FAMILY" "$BASE" > "$NAMES"
               ;;
@@ -284,8 +284,8 @@ jobs:
                 git diff --name-only "$from" HEAD | while read -r file; do
                   dir="$(dirname "$file")"
                   while [ "$dir" != "." ]; do
-                    if [ -f "${dir}/module.kdl" ]; then
-                      echo "${dir#modules/}"
+                    if [ -f "${dir}/manifest.kdl" ]; then
+                      echo "${dir#components/}"
                       break
                     fi
                     dir="$(dirname "$dir")"
@@ -297,7 +297,7 @@ jobs:
               fi
               ;;
           esac
-          echo "::notice::$(wc -l < "$NAMES") modules in the ${IMAGE} leg"
+          echo "::notice::$(wc -l < "$NAMES") components in the ${IMAGE} leg"
           cat "$NAMES"
 
       # The hardening leg imports only rhel components, so a claim from another family is never measured.
@@ -305,17 +305,18 @@ jobs:
         if: matrix.image == 'hardening'
         run: |
           set -euo pipefail
-          claiming="$(grep -rlE '^[[:space:]]*satisfies' --include=module.kdl modules \
-            | sed 's|^modules/||;s|/module\.kdl$||' | sort)"
+          claiming="$(grep -rlE '^[[:space:]]*satisfies' --include=manifest.kdl components \
+            | sed 's|^components/||;s|/manifest\.kdl$||' | sort)"
           stray="$(comm -23 <(printf '%s\n' "$claiming") <(sort "$NAMES") || true)"
           for name in $claiming; do
-            if ! grep -qE '^supports .*"rhel"' "modules/${name}/module.kdl"; then
+            manifest="components/${name}/manifest.kdl"
+            if grep -q '^targets ' "$manifest" && ! grep -qE '^targets .*"rhel"' "$manifest"; then
               stray="${stray:+${stray}$'\n'}${name}"
             fi
           done
           if [ -n "$stray" ]; then
             printf '%s\n' "$stray"
-            echo '::error::a module declares `satisfies` and no leg measures it'
+            echo '::error::a component declares `satisfies` and no leg measures it'
             exit 1
           fi
 
@@ -332,11 +333,8 @@ jobs:
             $0 == "sources {" {
               replaced++
               print "sources {"
-              print "    modules \"buildc-modules\" {"
-              print "        dir \"" root "/modules\""
-              print "    }"
-              print "    base-images \"core\" {"
-              print "        dir \"" root "/base-images/core\""
+              print "    components \"buildc-components\" {"
+              print "        dir \"" root "/components\""
               print "    }"
               print "}"
               replacing = 1
@@ -348,10 +346,8 @@ jobs:
           ' "${ROOT}/repo.kdl" > "${ROOT}/repo.kdl.new"
           mv "${ROOT}/repo.kdl.new" "${ROOT}/repo.kdl"
           for declaration in \
-            '    modules "buildc-modules" {' \
-            '    base-images "core" {' \
-            "        dir \"${GITHUB_WORKSPACE}/modules\"" \
-            "        dir \"${GITHUB_WORKSPACE}/base-images/core\""; do
+            '    components "buildc-components" {' \
+            "        dir \"${GITHUB_WORKSPACE}/components\""; do
             if [ "$(grep -Fxc "$declaration" "${ROOT}/repo.kdl" || true)" != 1 ]; then
               echo "::error::repo.kdl does not carry exactly one ${declaration}"
               exit 1
@@ -372,12 +368,12 @@ jobs:
           done
           if [ "$IMAGE" = hardening ]; then
             image="${ROOT}/${IMAGE}.image.kdl"
-            bases="$(grep -c '^    base "' "$image" || true)"
+            bases="$(grep -c '^    base-image {' "$image" || true)"
             if [ "$bases" != 1 ]; then
               echo "::error::${image} declares ${bases} images; the conforms splice writes one"
               exit 1
             fi
-            sed -i "s|^    base \"|    conforms \"${CONFORMS}\"\n\n    base \"|" \
+            sed -i "s|^    base-image {|    conforms \"${CONFORMS}\"\n\n    base-image {|" \
               "$image"
             wrote="$(grep -cx "    conforms \"${CONFORMS}\"" "$image" || true)"
             if [ "$wrote" != 1 ]; then
@@ -385,16 +381,37 @@ jobs:
               exit 1
             fi
           fi
+          listed() {
+            awk '
+              /^image \{/ { inside = 1; next }
+              inside && /^\}/ { inside = 0; next }
+              inside && $1 != "}" && ($1 == "flavour" || NF == 1 || $2 == "{" || $2 ~ /^variant=/) {
+                match($0, /^ */)
+                depth = RLENGTH / 4
+                stack[depth] = ($1 == "flavour") ? "" : $1
+                if ($1 == "flavour") next
+                path = ""
+                for (i = 1; i <= depth; i++) {
+                  if (stack[i] != "") path = (path == "" ? stack[i] : path "/" stack[i])
+                }
+                print path
+              }
+            ' "$1"
+          }
           declare -A keyed=()
           import_into() {
           local image="$1" name
           while read -r name; do
             case " $SKIP " in *" $name "*) continue ;; esac
-            grep -q "^supports .*\"${FAMILY}\"" "modules/${name}/module.kdl" || continue
-            if grep -q "module \"${name}\"" "${ROOT}/${image}.image.kdl"; then
+            manifest="components/${name}/manifest.kdl"
+            if grep -q '^targets ' "$manifest" \
+              && ! grep -q "^targets .*\"${FAMILY}\"" "$manifest"; then
               continue
             fi
-            "$BUILDC_BIN" import module "buildc-modules/${name}" --root "$ROOT" \
+            if listed "${ROOT}/${image}.image.kdl" | grep -qxF "$name"; then
+              continue
+            fi
+            "$BUILDC_BIN" import component "buildc-components/${name}" --root "$ROOT" \
               --image "$image" --no-tui
             [ -z "${keyed[$name]:-}" ] || continue
             keyed[$name]=1
@@ -433,33 +450,33 @@ jobs:
           shopt -s nullglob
           mapfile -t names < <(sort -u "$NAMES" "${NAMES}".[0-9]*)
           if [ "${#names[@]}" -eq 0 ]; then
-            echo "no modules in this leg"
+            echo "no components in this leg"
             exit 0
           fi
-          mapfile -t rooted < <(printf 'modules/%s\n' "${names[@]}")
+          mapfile -t rooted < <(printf 'components/%s\n' "${names[@]}")
           mapfile -t dirs < <(find "${rooted[@]}" -name 'test_*.py' -type f \
             -exec dirname {} \; | sort -u)
           for dir in ${dirs[@]+"${dirs[@]}"}; do
             python3 -m unittest discover -s "$dir" -v
           done
 
-      - name: Report where modules overlap
+      - name: Report where components overlap
         if: matrix.image == 'collection'
         run: |
           set -euo pipefail
           rows="$(jq -r '
             .images[].targets[]
             | (.overlay_overridden[]
-               | "- `\(.path)`: `\(.module)` ships it, `\(.by)` wins"),
-              (.modules
+               | "- `\(.path)`: `\(.component)` ships it, `\(.by)` wins"),
+              (.components
                | map(.provides[] as $c | {c: $c, m: .path})
                | group_by(.c)[] | select(length > 1)
                | "- `\(.[0].c)`: \(map("`\(.m)`") | join(", "))")
           ' "${ROOT}/generated/plan.json")"
           {
-            echo "## Where ${FAMILY} modules overlap"
+            echo "## Where ${FAMILY} components overlap"
             echo
-            echo "What one module ships and another replaces, and what two of"
+            echo "What one component ships and another replaces, and what two of"
             echo "them provide. Read it; it is not a failure."
             echo
             printf '%s\n' "${rows:-None.}"
@@ -560,7 +577,7 @@ jobs:
             --base-scan "${GITHUB_WORKSPACE}/.ci/centos-bootc-stream10-base-scan.json" \
             --baseline "${RUNNER_TEMP}/baseline.json")"
           printf '%s\n' "$report"
-          rows="$(printf '%s\n' "$report" | grep '^| buildc-modules/' || true)"
+          rows="$(printf '%s\n' "$report" | grep '^| buildc-components/' || true)"
           if [ -z "$rows" ]; then
             echo '::error::the report declared no claim at all'; exit 1
           fi

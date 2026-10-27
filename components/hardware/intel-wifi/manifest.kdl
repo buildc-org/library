@@ -1,0 +1,14 @@
+schema-version 1
+
+description "Intel Wi-Fi firmware"
+
+targets "fedora" "debian" "ubuntu"
+
+on "fedora" { packages "iwlwifi-mvm-firmware" "iwlwifi-mld-firmware" }
+
+on "debian" {
+    requires "non-free-firmware"
+    packages "firmware-iwlwifi"
+}
+
+on "ubuntu" { packages "linux-firmware-intel-wireless" }

@@ -1,0 +1,9 @@
+schema-version 1
+
+description "Git and version control tools"
+
+targets "fedora" "debian" "ubuntu"
+
+packages "direnv" "git" "git-delta" "git-lfs"
+
+on "fedora" { packages "git-credential-libsecret" }

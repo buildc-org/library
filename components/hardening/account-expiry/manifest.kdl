@@ -1,0 +1,11 @@
+schema-version 1
+
+description "Expires inactive accounts after 30 days"
+
+targets "fedora" "rhel" "debian" "ubuntu"
+
+on "fedora" "rhel" {
+    satisfies {
+        pci-dss "Req-8.1.4"
+    }
+}

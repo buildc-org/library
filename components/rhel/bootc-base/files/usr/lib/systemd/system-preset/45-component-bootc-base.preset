@@ -1,0 +1,6 @@
+# The base image runs no remote login, so the SSH units stay disabled.
+disable sshd.service
+disable sshd.socket
+
+# The root mounts read-only, so /tmp is a tmpfs that the running system can write.
+enable tmp.mount

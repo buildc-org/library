@@ -1,0 +1,16 @@
+schema-version 1
+
+description "YubiKey PAM and smart card support"
+
+targets "fedora" "debian" "ubuntu"
+
+requires "build-environment"
+
+packages "opensc" "pamu2fcfg" "yubikey-manager"
+
+on "fedora" {
+    packages "pam-u2f" "pam_yubico" "pcsc-lite" "pcsc-lite-ccid"
+}
+on "debian" "ubuntu" {
+    packages "libpam-u2f" "libpam-yubico" "pcscd" "libccid"
+}

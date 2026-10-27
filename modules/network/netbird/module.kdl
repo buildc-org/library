@@ -1,7 +1,0 @@
-schema-version 1
-
-description "NetBird mesh VPN client"
-
-supports "fedora"
-
-family "fedora" { packages "netbird" }

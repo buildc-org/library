@@ -1,0 +1,11 @@
+schema-version 1
+
+description "Restricts su to the admin group"
+
+targets "fedora" "rhel" "debian" "ubuntu"
+
+on "fedora" "rhel" {
+    satisfies {
+        stig "SRG-OS-000312-GPOS-00123"
+    }
+}

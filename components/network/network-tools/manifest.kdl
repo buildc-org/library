@@ -1,0 +1,12 @@
+schema-version 1
+
+description "Network diagnostic and management tools"
+
+targets "fedora" "debian" "ubuntu"
+
+packages "cifs-utils" "tcpdump" "traceroute" "wireguard-tools"
+
+on "fedora" { packages "avahi-gobject" "avahi-tools" "nmap-ncat" }
+on "debian" "ubuntu" {
+    packages "gir1.2-avahi-0.6" "avahi-utils" "netcat-openbsd"
+}

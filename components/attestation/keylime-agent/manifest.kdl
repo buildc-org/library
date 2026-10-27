@@ -1,0 +1,12 @@
+schema-version 1
+
+description "Keylime attestation agent"
+
+targets "fedora" "rhel"
+
+packages "keylime-agent-rust"
+
+option "registrar" type="string" {
+    description "Keylime registrar address"
+    default "127.0.0.1"
+}

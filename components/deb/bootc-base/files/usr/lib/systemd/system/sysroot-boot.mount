@@ -1,0 +1,15 @@
+[Unit]
+Description=Mount the boot partition where bootc reads its entries
+RequiresMountsFor=/boot
+ConditionPathIsDirectory=/sysroot/boot
+# A loader directory under /sysroot/boot keeps the unit inactive, so the bind mount never hides an existing boot tree.
+ConditionPathIsDirectory=!/sysroot/boot/loader
+
+[Mount]
+What=/boot
+Where=/sysroot/boot
+Type=none
+Options=bind
+
+[Install]
+WantedBy=local-fs.target

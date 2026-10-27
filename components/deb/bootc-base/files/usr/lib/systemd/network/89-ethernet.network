@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: systemd contributors
+# SPDX-FileCopyrightText: The buildc-org contributors
+# SPDX-License-Identifier: Apache-2.0 AND MIT-0
+[Match]
+# A virtual or aggregated interface carries a Kind, so this match leaves it to its own configuration.
+Kind=!*
+Type=ether
+
+[Network]
+DHCP=yes

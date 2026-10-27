@@ -1,0 +1,9 @@
+schema-version 1
+
+description "Chromium web browser"
+
+targets "debian"
+
+requires "build-environment" "graphical-session"
+
+packages "chromium"

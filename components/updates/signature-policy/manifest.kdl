@@ -1,0 +1,13 @@
+schema-version 1
+
+description "Verifies image updates with cosign"
+
+targets "fedora" "rhel" "debian" "ubuntu"
+
+provides "signature-policy"
+
+key "cosign" {
+    generator "cosign"
+    public "/etc/pki/containers/cosign.pub"
+    private "cosign.key"
+}

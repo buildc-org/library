@@ -1,9 +1,0 @@
-schema-version 1
-
-description "Git and its companions: git-delta, git-lfs, and the direnv that rides along"
-
-supports "fedora" "debian" "ubuntu"
-
-packages "direnv" "git" "git-delta" "git-lfs"
-
-family "fedora" { packages "git-credential-libsecret" }

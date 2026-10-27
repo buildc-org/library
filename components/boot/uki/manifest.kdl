@@ -1,0 +1,39 @@
+schema-version 1
+
+description "Signed unified kernel image boot chain"
+
+targets "fedora"
+
+provides "boot-chain-uki" witness="/boot/EFI/systemd/systemd-bootx64.efi"
+
+removes "bootupctl"
+
+requires "build-environment" "initramfs-generation"
+
+key "secureboot" {
+    generator "openssl" profile="module-signing" bits=4096
+    public "/usr/share/secureboot/sb_cert.der" format="der"
+    private "MOK.priv"
+}
+
+key "pcr" {
+    generator "openssl" profile="pcr-signing" bits=2048
+    public "/usr/share/secureboot/pcr.pub" format="pem"
+    private "pcr.priv"
+}
+
+secret "mok_privkey"
+secret "pcr_privkey"
+
+on "fedora" {
+    packages {
+        "systemd-ukify"
+        "binutils"
+        "systemd-boot-unsigned"
+        "sbsigntools"
+        "openssl"
+    }
+}
+
+// The UKI build extracts this fragment as its seal stage, so the fragment must stay in the tail position.
+fragment position="tail"

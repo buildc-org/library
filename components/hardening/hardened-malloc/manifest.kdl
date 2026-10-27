@@ -1,0 +1,14 @@
+schema-version 1
+
+description "System-wide hardened malloc"
+
+targets "fedora"
+
+requires "build-environment"
+
+provides "hardened-malloc"
+
+copr "secureblue/packages"
+
+// no_rlimit_as lifts the RLIMIT_AS limit that would otherwise abort hardened_malloc.
+packages "hardened_malloc" "no_rlimit_as" enablerepo="secureblue/packages"

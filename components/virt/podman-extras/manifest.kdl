@@ -1,0 +1,10 @@
+schema-version 1
+
+description "Extra Podman container tools"
+
+targets "fedora" "debian" "ubuntu"
+
+packages "podman-compose" "slirp4netns"
+
+on "fedora" { packages "podman-machine" "podman-tui" }
+on "debian" "ubuntu" { packages "passt" }

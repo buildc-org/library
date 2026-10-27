@@ -1,0 +1,9 @@
+schema-version 1
+
+description "Firefox web browser"
+
+targets "debian" "ubuntu"
+
+requires "build-environment" "graphical-session"
+
+packages "firefox"

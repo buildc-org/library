@@ -1,0 +1,2 @@
+# The kernel gives /dev/console to the last console=, so ttyS0 takes the boot log while tty0 still shows it.
+kargs = ["console=tty0", "console=ttyS0,115200n8"]

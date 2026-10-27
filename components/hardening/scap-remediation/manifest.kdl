@@ -1,0 +1,11 @@
+schema-version 1
+
+description "Applies SCAP remediation at build time"
+
+targets "fedora" "rhel"
+
+network "scripts"
+
+provides "scap-remediation"
+
+

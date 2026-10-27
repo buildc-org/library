@@ -1,0 +1,11 @@
+schema-version 1
+
+description "VSCodium code editor"
+
+targets "fedora" "debian" "ubuntu"
+
+requires "build-environment" "graphical-session"
+
+on "fedora" { packages "codium" enablerepo="vscodium"; }
+
+on "debian" "ubuntu" { packages "codium" }

@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - modules/deb/bootc-base/module.kdl
-      - modules/deb/bootc-base/build-tools.sh
+      - components/deb/bootc-base/manifest.kdl
+      - components/deb/bootc-base/build-tools.sh
       - .github/pins.py
       - .github/workflows/tools.yml
   workflow_dispatch:
@@ -33,7 +33,7 @@ jobs:
     env:
       FAMILY: ${{ matrix.family }}
       BASE: ${{ matrix.base }}
-      MODULE: modules/deb/bootc-base
+      COMPONENT: components/deb/bootc-base
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
@@ -52,12 +52,12 @@ jobs:
           tar -xzf "$dir"/*.tar.gz -C "$dir"
           mkdir -p "${RUNNER_TEMP}/ctx/lib"
           cp "$dir"/assets/lib/*.sh "${RUNNER_TEMP}/ctx/lib/"
-          cp modules/deb/build-environment/lib/family.sh "${RUNNER_TEMP}/ctx/lib/"
+          cp components/deb/build-environment/lib/family.sh "${RUNNER_TEMP}/ctx/lib/"
 
-      - name: Read the module's pins
+      - name: Read the component's pins
         run: |
           set -euo pipefail
-          python3 .github/pins.py "$MODULE" > "${RUNNER_TEMP}/pins.env"
+          python3 .github/pins.py "$COMPONENT" > "${RUNNER_TEMP}/pins.env"
           grep -v '^ASSET_BOOTC_TOOLS_' "${RUNNER_TEMP}/pins.env" > "${RUNNER_TEMP}/build.env"
           # shellcheck disable=SC1091
           . "${RUNNER_TEMP}/build.env"
@@ -93,12 +93,12 @@ jobs:
             -v "${RUNNER_TEMP}/out:/out" \
             --env-file "${RUNNER_TEMP}/build.env" \
             -e "TARBALL=${TARBALL}" \
-            -e "MODULE=${MODULE}" \
+            -e "COMPONENT=${COMPONENT}" \
             "$BASE" bash -euxo pipefail -c '
               source /ctx/lib/family.sh
-              bash /src/modules/deb/build-environment/module.sh
+              bash /src/components/deb/build-environment/component.sh
               install_packages curl ca-certificates zstd
-              DESTDIR=/stage bash "/src/${MODULE}/build-tools.sh"
+              DESTDIR=/stage bash "/src/${COMPONENT}/build-tools.sh"
               tar --use-compress-program="zstd -19 -T0" -C /stage -cf "/out/${TARBALL}" .
             '
 
@@ -119,4 +119,4 @@ jobs:
             "The bootc and bootupd trees \`deb/bootc-base\` installs, compiled from its pins." \
             || true
           gh release upload "$TAG" "$TARBALL"
-          echo "::notice::${MODULE}/module.kdl: bootc-tools-${FAMILY} is version \"${VERSION}\" sha256 \"$(sha256sum "$TARBALL" | cut -d' ' -f1)\""
+          echo "::notice::${COMPONENT}/manifest.kdl: bootc-tools-${FAMILY} is version \"${VERSION}\" sha256 \"$(sha256sum "$TARBALL" | cut -d' ' -f1)\""

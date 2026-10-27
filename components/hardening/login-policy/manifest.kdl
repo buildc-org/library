@@ -1,0 +1,19 @@
+schema-version 1
+
+description "Account lockout and password quality"
+
+targets "fedora" "rhel" "debian" "ubuntu"
+
+on "debian" "ubuntu" {
+    packages "libpam-pwquality" "cracklib-runtime"
+}
+
+
+on "fedora" "rhel" {
+    satisfies {
+        stig "SRG-OS-000071-GPOS-00039" \
+            "SRG-OS-000072-GPOS-00040" \
+            "SRG-OS-000266-GPOS-00101"
+        nist "AC-7.1(ii)"
+    }
+}

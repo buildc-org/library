@@ -1,0 +1,2 @@
+# 0x1050 is the Yubico USB vendor identifier.
+ACTION!="remove", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1050", TAG+="uaccess"

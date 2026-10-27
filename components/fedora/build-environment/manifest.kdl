@@ -1,0 +1,12 @@
+schema-version 1
+
+description "Shared dnf build helpers"
+
+// RHEL uses the same dnf family helper, so one build environment serves both targets.
+targets "fedora" "rhel"
+
+network "scripts"
+
+provides "build-environment" exclusive=#true
+
+helpers "lib/family.sh"

@@ -1,0 +1,9 @@
+schema-version 1
+
+description "Reboot and shutdown just recipes"
+
+targets "fedora"
+
+requires "goojust"
+
+contributes "justfile.inc" priority=900

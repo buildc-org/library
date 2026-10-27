@@ -1,0 +1,11 @@
+schema-version 1
+
+description "AppArmor confinement policy"
+
+targets "debian" "ubuntu"
+
+provides "apparmor-policy" witness="/usr/sbin/apparmor_parser"
+
+requires "build-environment"
+
+packages "apparmor" "apparmor-utils"

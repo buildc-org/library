@@ -1,0 +1,59 @@
+schema-version 1
+
+description "The bootc parts for a Rocky Linux container image"
+
+targets "rhel"
+
+provides "bootc-base"
+
+provides "selinux-policy" witness="/usr/sbin/semodule"
+
+provides "container-runtime"
+
+provides {
+    "bootc" witness="/usr/bin/bootc"
+    "bootupctl" witness="/usr/bin/bootupctl"
+    "podman" witness="/usr/bin/podman"
+    "crun" witness="/usr/bin/crun"
+    "luks-initramfs"
+}
+provides "ssh" witness="/usr/sbin/sshd"
+
+requires "build-environment"
+
+packages {
+    "systemd"
+    "systemd-udev"
+    "kernel"
+    "dracut"
+    "ostree"
+    "composefs"
+    "bootc"
+    "bootupd"
+    "rpm-ostree"
+    "skopeo"
+    "podman"
+    "crun"
+    "selinux-policy-targeted"
+    "policycoreutils"
+    "NetworkManager"
+    "openssh-server"
+    "sudo"
+    "iproute"
+    "shim-x64"
+    "grub2-efi-x64"
+    "grub2-pc"
+    "efibootmgr"
+    "e2fsprogs"
+    "xfsprogs"
+    "dosfstools"
+    "cryptsetup"
+    "lvm2"
+    "ca-certificates"
+    "curl"
+    "zstd"
+    "less"
+    "man-db"
+}
+
+fragment position="after"

@@ -1,0 +1,7 @@
+schema-version 1
+
+description "NetBird mesh VPN"
+
+targets "fedora"
+
+on "fedora" { packages "netbird" }

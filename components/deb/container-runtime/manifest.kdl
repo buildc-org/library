@@ -1,0 +1,16 @@
+schema-version 1
+
+description "Podman container runtime"
+
+targets "debian" "ubuntu"
+
+provides "container-runtime"
+
+requires "build-environment"
+
+provides {
+    "podman" witness="/usr/bin/podman"
+    "crun" witness="/usr/bin/crun"
+}
+
+packages "podman" "crun"

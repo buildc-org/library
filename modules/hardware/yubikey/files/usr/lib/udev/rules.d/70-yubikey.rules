@@ -1,1 +1,0 @@
-ACTION!="remove", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1050", TAG+="uaccess"

@@ -1,0 +1,11 @@
+schema-version 1
+
+description "Trivalent web browser"
+
+targets "fedora"
+
+requires "build-environment" "graphical-session" "selinux-policy"
+
+requires "flatpak"
+
+packages "trivalent" "trivalent-qt6-ui" "trivalent-selinux" enablerepo="secureblue"

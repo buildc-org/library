@@ -1,0 +1,8 @@
+schema-version 1
+
+description "Logitech device management"
+
+targets "fedora" "debian" "ubuntu"
+
+on "fedora" { packages "solaar-udev" }
+on "debian" "ubuntu" { packages "solaar" }

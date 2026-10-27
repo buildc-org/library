@@ -1,0 +1,11 @@
+schema-version 1
+
+description "Disables core dumps"
+
+targets "fedora" "rhel" "debian" "ubuntu"
+
+on "fedora" "rhel" {
+    satisfies {
+        pci-dss "Req-3.2"
+    }
+}

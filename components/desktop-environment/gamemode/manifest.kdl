@@ -1,0 +1,7 @@
+schema-version 1
+
+description "GameMode performance daemon"
+
+targets "fedora" "debian" "ubuntu"
+
+packages "gamemode"

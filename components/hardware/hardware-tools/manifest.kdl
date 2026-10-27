@@ -1,0 +1,10 @@
+schema-version 1
+
+description "Hardware inspection and sensor tools"
+
+targets "fedora" "debian" "ubuntu"
+
+packages "alsa-utils" "dmidecode" "intel-lpmd" "lshw" "pciutils" "powerstat"
+
+on "fedora" { packages "alsa-ucm" "lm_sensors" }
+on "debian" "ubuntu" { packages "alsa-ucm-conf" "lm-sensors" }

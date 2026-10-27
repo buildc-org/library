@@ -1,0 +1,30 @@
+schema-version 1
+
+description "Virtual machine management stack"
+
+targets "fedora" "debian" "ubuntu"
+
+packages "qemu-user-binfmt" "virt-manager" "virt-v2v" "virt-viewer"
+
+on "fedora" {
+    packages {
+        "edk2-ovmf"
+        "libvirt"
+        "libvirt-nss"
+        "qemu"
+        "qemu-img"
+        "qemu-system-x86-core"
+        "qemu-user-static-aarch64"
+    }
+}
+on "debian" "ubuntu" {
+    packages {
+        "ovmf"
+        "libvirt-daemon-system"
+        "libvirt-clients"
+        "libnss-libvirt"
+        "qemu-system-x86"
+        "qemu-utils"
+    }
+}
+

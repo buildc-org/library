@@ -1,0 +1,7 @@
+schema-version 1
+
+description "Automatic image and Flatpak updates"
+
+targets "fedora" "debian" "ubuntu"
+
+requires "build-environment" "signature-policy"

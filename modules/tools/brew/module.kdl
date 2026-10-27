@@ -1,9 +1,0 @@
-schema-version 1
-
-description "Homebrew, set up at first login, with a PATH shim for every shell"
-
-supports "fedora" "debian" "ubuntu"
-
-family "debian" "ubuntu" {
-    packages "build-essential" "procps" "curl" "file" "git"
-}

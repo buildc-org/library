@@ -1,0 +1,5 @@
+schema-version 1
+
+description "The image's own name in os-release"
+
+provides "os-release" witness="/usr/lib/os-release" exclusive=#true

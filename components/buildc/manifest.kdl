@@ -1,0 +1,20 @@
+schema-version 1
+
+description "Buildc image build tool"
+
+targets "fedora"
+
+network "scripts"
+
+provides {
+    "buildc" witness="/usr/bin/buildc"
+    "buildc-assets" witness="/usr/share/buildc/assets"
+}
+
+asset "buildc" {
+    pin {
+        renovate datasource="github-releases" depName="buildc-org/buildc"
+        version "0.1.0"
+        url "https://github.com/buildc-org/buildc/releases/download/v{version}/buildc-v{version}-x86_64-linux-musl.tar.gz"
+    }
+}

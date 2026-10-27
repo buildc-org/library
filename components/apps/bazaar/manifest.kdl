@@ -1,0 +1,9 @@
+schema-version 1
+
+description "Bazaar Flatpak app store"
+
+targets "fedora" "debian" "ubuntu"
+
+requires "flatpak" "graphical-session"
+
+provides "bazaar"

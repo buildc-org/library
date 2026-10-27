@@ -1,0 +1,9 @@
+schema-version 1
+
+description "Backup and cloud sync tools"
+
+targets "fedora" "debian" "ubuntu"
+
+packages "borgbackup" "restic"
+
+on "fedora" "ubuntu" { packages "rclone" }

@@ -1,0 +1,5 @@
+-D
+# `immutable.rules` sets `-f 2`, so a lost record halts the machine. The backlog
+# and its wait are sized to hold a burst of events instead of losing them.
+-b 8192
+--backlog_wait_time 60000

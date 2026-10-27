@@ -1,0 +1,11 @@
+schema-version 1
+
+description "Flatpak application runtime"
+
+targets "fedora" "debian" "ubuntu"
+
+packages "flatpak"
+
+collects "flatpaks.list" into="/usr/share/flatpak-defaults/apps.list" priority=500
+
+provides "flatpak" witness="/usr/bin/flatpak"

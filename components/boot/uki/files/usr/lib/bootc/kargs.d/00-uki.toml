@@ -1,0 +1,2 @@
+# Secure Boot drops a loader-supplied command line when the UKI carries its own, so a karg the boot needs must live here.
+kargs = ["rw"]

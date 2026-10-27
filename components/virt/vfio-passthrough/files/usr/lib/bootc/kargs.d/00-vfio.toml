@@ -1,0 +1,2 @@
+# Loading vfio-pci in the initramfs lets it bind the passed-through GPU before a host driver claims it.
+kargs = ["iommu=pt", "rd.driver.pre=vfio-pci"]

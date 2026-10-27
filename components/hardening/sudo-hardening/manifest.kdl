@@ -1,0 +1,11 @@
+schema-version 1
+
+description "Sudo logging and timeout policy"
+
+targets "fedora" "rhel" "debian" "ubuntu"
+
+mode "/etc/sudoers.d/99-hardening" "0440"
+
+satisfies {
+    pci-dss "Req-10.2.5"
+}

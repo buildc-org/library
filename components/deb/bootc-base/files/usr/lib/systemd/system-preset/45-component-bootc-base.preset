@@ -1,0 +1,15 @@
+# The image supplies the package state, so the package manager timers have no work on the running system.
+disable apt-daily.timer
+disable apt-daily-upgrade.timer
+disable dpkg-db-backup.timer
+
+disable ssh.socket
+
+enable grub-menu-from-bls.service
+enable grub-menu-from-bls.path
+
+enable sysroot-boot.mount
+
+enable sysroot-boot-rw.service
+
+enable systemd-networkd.service

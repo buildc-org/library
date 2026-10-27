@@ -1,0 +1,7 @@
+schema-version 1
+
+description "GRUB detection of other operating systems"
+
+targets "fedora"
+
+provides "grub2-os-prober-regen" witness="/usr/libexec/grub2-os-prober-regen"
