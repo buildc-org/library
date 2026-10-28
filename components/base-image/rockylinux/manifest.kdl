@@ -2,7 +2,12 @@ schema-version 1
 
 description "A Rocky Linux bootc image"
 
-imports "fedora/build-environment" "package-manager/dnf4" "rhel/bootc-base" "identity"
+provides {
+    "package-manager/dnf4" witness="/usr/bin/dnf4"
+}
+
+// Rocky Linux publishes no bootc image, so this base starts from the distribution image and imports the RHEL bootc parts.
+imports "fedora/build-environment" "rhel/bootc-base" "identity"
 
 base "quay.io/rockylinux/rockylinux:$version" {
     family "rhel"

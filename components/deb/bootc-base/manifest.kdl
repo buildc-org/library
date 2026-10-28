@@ -1,6 +1,6 @@
 schema-version 1
 
-description "The bootc parts for a deb-family container image"
+description "Adds bootc to Debian based images"
 
 targets "debian" "ubuntu"
 
@@ -18,7 +18,10 @@ provides {
 
 requires "build-environment"
 
+after "os-release"
+
 requires "container-runtime"
+
 
 // Debian and Ubuntu ship no bootc package, so this component compiles the pinned release at image build time.
 asset "bootc" {
@@ -58,7 +61,7 @@ asset "bootupd-vendor" {
 }
 
 option "prebuilt-tools" type="bool" {
-    description "Use bootc and bootupd prebuilt from this component's pins."
+    description "Use prebuilt bootc tools instead of compiling"
     default #false
 }
 
@@ -66,7 +69,7 @@ asset "bootc-tools-debian" {
     pin {
         manual "the tools workflow builds it from the four pins above; this records the release it wrote"
         version "none"
-        url "https://github.com/buildc-org/modules/releases/download/deb-bootc-tools-{version}/deb-bootc-tools-debian-{version}.tar.zst"
+        url "https://github.com/buildc-org/library/releases/download/deb-bootc-tools-{version}/deb-bootc-tools-debian-{version}.tar.zst"
         sha256 "0000000000000000000000000000000000000000000000000000000000000000"
     }
 }
@@ -75,7 +78,7 @@ asset "bootc-tools-ubuntu" {
     pin {
         manual "the tools workflow builds it from the four pins above; this records the release it wrote"
         version "none"
-        url "https://github.com/buildc-org/modules/releases/download/deb-bootc-tools-{version}/deb-bootc-tools-ubuntu-{version}.tar.zst"
+        url "https://github.com/buildc-org/library/releases/download/deb-bootc-tools-{version}/deb-bootc-tools-ubuntu-{version}.tar.zst"
         sha256 "0000000000000000000000000000000000000000000000000000000000000000"
     }
 }

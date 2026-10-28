@@ -1,16 +1,12 @@
 schema-version 1
 
-description "CachyOS kernel and companions, with Secure Boot module signing"
+description "CachyOS performance kernel"
 
 targets "fedora"
 
 network "scripts"
 
-provides {
-    "kernel-devel"
-    "kernel-package" witness="/usr/lib/kernel-build/kernel-package"
-    "kernel-devel-helpers" witness="/usr/libexec/kernel-devel-helpers.sh" build-only=#true
-}
+provides "kernel" witness="/usr/lib/kernel-build/kernel-package"
 
 key "secureboot" {
     generator "openssl" profile="module-signing" bits=4096
@@ -19,6 +15,8 @@ key "secureboot" {
 }
 
 requires "build-environment" "initramfs-generation"
+
+after "os-release"
 
 copr "bieszczaders/kernel-cachyos"
 copr "bieszczaders/kernel-cachyos-addons"

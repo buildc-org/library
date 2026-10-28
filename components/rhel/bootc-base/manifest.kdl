@@ -1,6 +1,6 @@
 schema-version 1
 
-description "The bootc parts for a Rocky Linux container image"
+description "Adds bootc to RHEL based images"
 
 targets "rhel"
 
@@ -20,6 +20,9 @@ provides {
 provides "ssh" witness="/usr/sbin/sshd"
 
 requires "build-environment"
+
+after "os-release"
+
 
 packages {
     "systemd"
