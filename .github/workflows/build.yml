@@ -577,7 +577,9 @@ jobs:
             --base-scan "${GITHUB_WORKSPACE}/.ci/centos-bootc-stream10-base-scan.json" \
             --baseline "${RUNNER_TEMP}/baseline.json")"
           printf '%s\n' "$report"
-          rows="$(printf '%s\n' "$report" | grep '^| buildc-components/' || true)"
+          rows="$(printf '%s\n' "$report" | awk '
+            /^## / { table = ($0 == "## Declared coverage, measured"); next }
+            table && /^\| / && !/^\| (Component|---) /')"
           if [ -z "$rows" ]; then
             echo '::error::the report declared no claim at all'; exit 1
           fi
