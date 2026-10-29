@@ -1,0 +1,9 @@
+schema-version 1
+
+description "Fedora free media codecs"
+
+targets "fedora"
+
+requires "build-environment"
+
+packages "ffmpeg-free"

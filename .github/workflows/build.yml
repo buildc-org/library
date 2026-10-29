@@ -251,8 +251,7 @@ jobs:
           set -euo pipefail
           case "$IMAGE" in
             collection)
-              mapfile -t all < <(find components -mindepth 2 -name manifest.kdl -not -path '*/.*' \
-                -not -path 'components/base-image/*' -printf '%h\n' | sed 's|^components/||' | sort)
+              mapfile -t all < <(python3 .github/closure.py --features)
               python3 .github/closure.py --split "$FAMILY" "$BASE" "${all[@]}" \
                 | awk -v n="$NAMES" '{ print $2 > ($1 == 0 ? n : n "." $1) }'
               for alt in "${NAMES}".[0-9]*; do
