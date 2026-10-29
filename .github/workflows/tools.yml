@@ -43,10 +43,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          dir="${RUNNER_TEMP}/tect"
+          dir="${RUNNER_TEMP}/buildc"
           mkdir -p "$dir"
           gh release download --repo buildc-org/buildc --dir "$dir" \
-            --pattern 'tect-v*-x86_64-linux-musl.tar.gz*'
+            --pattern 'buildc-v*-x86_64-linux-musl.tar.gz*'
           (cd "$dir" && printf '%s  %s\n' "$(cat ./*.sha256)" ./*.tar.gz \
             | sha256sum --check --status)
           tar -xzf "$dir"/*.tar.gz -C "$dir"
@@ -115,8 +115,9 @@ jobs:
         run: |
           set -euo pipefail
           cd "${RUNNER_TEMP}/out"
-          gh release create "$TAG" --title "$TAG" --notes \
+          # Both families publish into one release, so the second create finds it already there.
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes \
             "The bootc and bootupd trees \`deb/bootc-base\` installs, compiled from its pins." \
             || true
-          gh release upload "$TAG" "$TARBALL"
+          gh release upload "$TAG" "$TARBALL" --repo "$GITHUB_REPOSITORY"
           echo "::notice::${COMPONENT}/manifest.kdl: bootc-tools-${FAMILY} is version \"${VERSION}\" sha256 \"$(sha256sum "$TARBALL" | cut -d' ' -f1)\""
