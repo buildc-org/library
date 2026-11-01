@@ -1,0 +1,2 @@
+# A udev worker cannot block on service startup, so the restart is queued.
+ACTION=="add|bind", SUBSYSTEM=="pci", DRIVER=="nvidia", RUN+="/usr/bin/systemctl --no-block restart nvidia-nodes.service"

@@ -1,6 +1,6 @@
 schema-version 1
 
-description "Debian, which a component set has to turn into a bootc image"
+description "Ubuntu bootc base image"
 
 provides {
     "package-manager/apt" witness="/usr/bin/apt-get"
@@ -8,11 +8,11 @@ provides {
 
 imports "deb/build-environment" "deb/bootc-base" "identity"
 
-base "docker.io/library/debian:$version" {
-    family "debian"
+base "docker.io/library/ubuntu:$version" {
+    family "ubuntu"
     bootloader "grub2" "systemd"
 }
 
 option "version" type="string" {
-    default "forky"
+    default "26.04"
 }

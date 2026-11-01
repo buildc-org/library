@@ -1,6 +1,6 @@
 schema-version 1
 
-description "A CentOS Stream bootc image"
+description "CentOS Stream bootc base image"
 
 provides {
     "rechunking"
@@ -19,7 +19,14 @@ imports "fedora/build-environment" "identity"
 base "quay.io/centos-bootc/centos-bootc:$version" {
     family "rhel"
     bootloader "grub2"
-    scap-content "ssg-cs10-ds.xml"
+    scap-content "ssg-cs10-ds.xml" {
+        pin {
+            renovate datasource="github-releases" depName="ComplianceAsCode/content" extractVersion="^v(?<version>.+)$"
+            version "0.1.82"
+            url "https://github.com/ComplianceAsCode/content/releases/download/v{version}/scap-security-guide-{version}.zip"
+            sha256 "4cd9aa720c627f6357ef6e7d0b777395e5b3c7dbec84ca7ba3f178ebc1a8f48b" from="manual"
+        }
+    }
 }
 
 option "version" type="string" {

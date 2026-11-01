@@ -1,6 +1,7 @@
 schema-version 1
 
-description "A RHEL bootc image"
+
+description "RHEL bootc base image"
 
 provides {
     "rechunking"
@@ -19,7 +20,14 @@ imports "fedora/build-environment" "identity"
 base "registry.redhat.io/rhel10/rhel-bootc:$version" {
     family "rhel"
     bootloader "grub2"
-    scap-content "ssg-rhel10-ds.xml"
+    scap-content "ssg-rhel10-ds.xml" {
+        pin {
+            renovate datasource="github-releases" depName="ComplianceAsCode/content" extractVersion="^v(?<version>.+)$"
+            version "0.1.82"
+            url "https://github.com/ComplianceAsCode/content/releases/download/v{version}/scap-security-guide-{version}.zip"
+            sha256 "3a22f1f747ef7b895268b2da838f680b6a7ea421c5132d6ac4141d858afc60c6" from="manual"
+        }
+    }
 }
 
 option "version" type="string" {

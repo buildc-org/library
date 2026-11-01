@@ -1,0 +1,2 @@
+# The initramfs and the booted system each load modules, so nouveau is blacklisted on both paths.
+kargs = ["rd.driver.blacklist=nouveau", "modprobe.blacklist=nouveau"]

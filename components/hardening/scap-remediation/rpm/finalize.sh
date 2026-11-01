@@ -2,19 +2,14 @@ if [ -z "${CONFORMS:-}" ] || [ -z "${SCAP_CONTENT:-}" ]; then
     echo "scap-remediation: no conforms, nothing to remediate"
 else
     scap_added=()
-    for scap_pkg in openscap-utils scap-security-guide openscap-engine-sce setools-console; do
+    for scap_pkg in openscap-utils openscap-engine-sce setools-console; do
         rpm -q "${scap_pkg}" > /dev/null 2>&1 || scap_added+=("${scap_pkg}")
     done
     if [ "${#scap_added[@]}" -gt 0 ]; then
         dnf -y install "${scap_added[@]}"
     fi
 
-    scap_exempt="${SCAP_REFUSED:-}"
-    if [ -n "${SCAP_CLAIMED:-}" ]; then
-        # shellcheck disable=SC2086 # one number per argument is the point
-        scap_exempt="${scap_exempt} $(/ctx/tect scap rules \
-            --datastream "${SCAP_CONTENT}" ${SCAP_CLAIMED})"
-    fi
+    scap_exempt="${SCAP_REFUSED:-} ${SCAP_CLAIMED:-}"
 
     scap_profile="${CONFORMS}"
     scap_tailoring=()
@@ -24,24 +19,25 @@ else
     done
     if [ "${#scap_unselect[@]}" -gt 0 ]; then
         autotailor "${SCAP_CONTENT}" "${CONFORMS}" "${scap_unselect[@]}" \
-            -p "${CONFORMS}_tect" -o /tmp/tect-tailoring.xml
-        scap_profile="${CONFORMS}_tect"
-        scap_tailoring=(--tailoring-file /tmp/tect-tailoring.xml)
+            -p "${CONFORMS}_buildc" -o /tmp/buildc-tailoring.xml
+        scap_profile="${CONFORMS}_buildc"
+        scap_tailoring=(--tailoring-file /tmp/buildc-tailoring.xml)
         echo "scap-remediation: $((${#scap_unselect[@]} / 2)) rules left to their owners"
     fi
 
     # A failing rule makes oscap-im exit non-zero, so the hook checks the report file instead of the exit status.
     oscap-im --profile "${scap_profile}" "${scap_tailoring[@]}" \
-        --results-arf /tmp/tect-scap-arf.xml "${SCAP_CONTENT}" || true
-    [ -s /tmp/tect-scap-arf.xml ] || {
+        --results-arf /tmp/buildc-scap-arf.xml "${SCAP_CONTENT}" || true
+    [ -s /tmp/buildc-scap-arf.xml ] || {
         echo "scap-remediation: the scan wrote no report"
         exit 1
     }
 
-    scap_evaluated="$(grep -o '<result>[a-z]*</result>' /tmp/tect-scap-arf.xml \
+    # grep -c exits 1 on a zero count, so the zero value is kept for the check below.
+    scap_evaluated="$(grep -o '<result>[a-z]*</result>' /tmp/buildc-scap-arf.xml \
         | grep -cv 'notselected' || true)"
     echo "scap-remediation: ${scap_evaluated} rules evaluated for ${scap_profile}"
-    grep -o '<result>[a-z]*</result>' /tmp/tect-scap-arf.xml | sort | uniq -c
+    grep -o '<result>[a-z]*</result>' /tmp/buildc-scap-arf.xml | sort | uniq -c
     if [ "${scap_evaluated}" -eq 0 ]; then
         echo "scap-remediation: ${scap_profile} selected no rule, so nothing was remediated"
         exit 1
@@ -59,5 +55,5 @@ else
         dnf -y remove "${scap_added[@]}"
     fi
     dnf -y clean all
-    rm -f /tmp/tect-tailoring.xml /tmp/tect-scap-arf.xml
+    rm -f /tmp/buildc-tailoring.xml /tmp/buildc-scap-arf.xml
 fi

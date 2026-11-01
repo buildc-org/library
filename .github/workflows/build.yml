@@ -118,7 +118,7 @@ jobs:
           REUSE_IMAGE: docker.io/fsfe/reuse@sha256:85462a75c0f8efda09ddd190b92816b70e7662577c8427429e11e1b9f25a992e
         run: docker run --rm -v "${PWD}:/data:ro" "$REUSE_IMAGE" lint
 
-      - name: Check that every asset pin is hashed
+      - name: Check the CI scripts and the asset pins
         run: |
           set -euo pipefail
           python3 -m unittest discover -s .github
@@ -229,17 +229,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          dir="${RUNNER_TEMP}/tect"
+          dir="${RUNNER_TEMP}/buildc"
           mkdir -p "$dir"
           gh release download --repo buildc-org/buildc --dir "$dir" \
-            --pattern 'tect-v*-x86_64-linux-musl.tar.gz*'
+            --pattern 'buildc-v*-x86_64-linux-musl.tar.gz*'
           (cd "$dir" && printf '%s  %s\n' "$(cat ./*.sha256)" ./*.tar.gz \
             | sha256sum --check --status)
           tar -xzf "$dir"/*.tar.gz -C "$dir"
           {
             echo "ROOT=${RUNNER_TEMP}/collection"
             echo "NAMES=${RUNNER_TEMP}/names"
-            echo "BUILDC_BIN=${dir}/tect"
+            echo "BUILDC_BIN=${dir}/buildc"
             echo "BUILDC_ASSETS=${dir}/assets"
           } >> "${GITHUB_ENV}"
 
@@ -332,7 +332,7 @@ jobs:
             $0 == "sources {" {
               replaced++
               print "sources {"
-              print "    components \"buildc-components\" {"
+              print "    components \"buildc\" {"
               print "        dir \"" root "/components\""
               print "    }"
               print "}"
@@ -345,7 +345,7 @@ jobs:
           ' "${ROOT}/repo.kdl" > "${ROOT}/repo.kdl.new"
           mv "${ROOT}/repo.kdl.new" "${ROOT}/repo.kdl"
           for declaration in \
-            '    components "buildc-components" {' \
+            '    components "buildc" {' \
             "        dir \"${GITHUB_WORKSPACE}/components\""; do
             if [ "$(grep -Fxc "$declaration" "${ROOT}/repo.kdl" || true)" != 1 ]; then
               echo "::error::repo.kdl does not carry exactly one ${declaration}"
@@ -410,7 +410,7 @@ jobs:
             if listed "${ROOT}/${image}.image.kdl" | grep -qxF "$name"; then
               continue
             fi
-            "$BUILDC_BIN" import component "buildc-components/${name}" --root "$ROOT" \
+            "$BUILDC_BIN" import component "buildc/${name}" --root "$ROOT" \
               --image "$image" --no-tui
             [ -z "${keyed[$name]:-}" ] || continue
             keyed[$name]=1
@@ -441,7 +441,7 @@ jobs:
         run: |
           "${ROOT}/generated/scripts/lint.sh"
 
-      - name: Run the tests the collection ships
+      - name: Run the tests of the selected components
         env:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
@@ -547,22 +547,23 @@ jobs:
               -o LogLevel=ERROR -i "${RUNNER_TEMP}/vm/key" -p 2222 root@localhost "$@"
           }
           content="$(cd "$ROOT" && "$BUILDC_BIN" scap content --target "$IMAGE")"
+          cp "${ROOT}/${content}" "${RUNNER_TEMP}/ds.xml"
           # The scanner installs into /usr, which bootc keeps read-only without the overlay.
           s bootc usr-overlay
           s 'n=0
-            until dnf -y install openscap-scanner scap-security-guide >/dev/null; do
+            until dnf -y install openscap-scanner >/dev/null; do
               n=$((n+1))
               [ "$n" -ge 3 ] && exit 1
               dnf clean all
               sleep 15
             done'
-          s cat "$content" > "${RUNNER_TEMP}/ds.xml"
+          s 'cat > /tmp/ds.xml' < "${RUNNER_TEMP}/ds.xml"
           (cd "$ROOT" && "$BUILDC_BIN" scap tailoring --target "$IMAGE" \
             --datastream "${RUNNER_TEMP}/ds.xml") | s 'cat > /tmp/tailoring.xml'
           # A failed rule makes oscap exit non-zero, so the check reads the result file instead.
           s oscap xccdf eval \
-            --tailoring-file /tmp/tailoring.xml --profile xccdf_tect_profile_measured \
-            --results-arf /tmp/arf.xml "$content" || true
+            --tailoring-file /tmp/tailoring.xml --profile xccdf_buildc_profile_measured \
+            --results-arf /tmp/arf.xml /tmp/ds.xml || true
           s cat /tmp/arf.xml > "${RUNNER_TEMP}/arf.xml"
           [ -s "${RUNNER_TEMP}/arf.xml" ]
           echo "DATASTREAM=${RUNNER_TEMP}/ds.xml" >> "$GITHUB_ENV"

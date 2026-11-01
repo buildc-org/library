@@ -1,6 +1,7 @@
 schema-version 1
 
-description "An Ubuntu LTS bootc image"
+
+description "Debian bootc base image"
 
 provides {
     "package-manager/apt" witness="/usr/bin/apt-get"
@@ -8,11 +9,11 @@ provides {
 
 imports "deb/build-environment" "deb/bootc-base" "identity"
 
-base "docker.io/library/ubuntu:$version" {
-    family "ubuntu"
+base "docker.io/library/debian:$version" {
+    family "debian"
     bootloader "grub2" "systemd"
 }
 
 option "version" type="string" {
-    default "26.04"
+    default "forky"
 }

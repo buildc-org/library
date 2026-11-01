@@ -1,6 +1,6 @@
 schema-version 1
 
-description "A Rocky Linux bootc image"
+description "Rocky Linux bootc base image"
 
 provides {
     "package-manager/dnf4" witness="/usr/bin/dnf4"

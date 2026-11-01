@@ -1,0 +1,7 @@
+[Unit]
+Description=Create the /dev/nvidia* device nodes
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh /usr/libexec/nvidia-nodes

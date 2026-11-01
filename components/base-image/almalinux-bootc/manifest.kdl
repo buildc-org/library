@@ -1,6 +1,6 @@
 schema-version 1
 
-description "An AlmaLinux bootc image"
+description "AlmaLinux bootc base image"
 
 provides {
     "rechunking"
