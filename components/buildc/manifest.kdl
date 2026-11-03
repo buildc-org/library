@@ -16,5 +16,6 @@ asset "buildc" {
         renovate datasource="github-releases" depName="buildc-org/buildc"
         version "0.1.0"
         url "https://github.com/buildc-org/buildc/releases/download/v{version}/buildc-v{version}-x86_64-linux-musl.tar.gz"
+        sha256 "1cfb31c1e4290de61a560a3060c327635eec0ddfdb5da6f08935e65988d1b7b0" from="sidecar"
     }
 }
