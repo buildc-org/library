@@ -7,21 +7,30 @@ Run from the library root.
 
     packages.py <family>
     packages.py <family> --repos
+    packages.py <family> --helpers
 
-`--repos` prints every `repo.sh` this family would source instead. The job runs
-them first, because a package from a third-party archive resolves only after
-its archive is added. A component that declares no packages is listed too. It
+`--repos` prints a shell script that sources every `repo.sh` this family would
+run instead. The job runs it first, because a package from a third-party
+archive resolves only after its archive is added. Each repository script runs
+with the asset environment its component declares, which is what `buildc`
+provides inside a layer. A component that declares no packages is listed too. It
 can enable an archive section that other components install from.
+
+`--helpers` prints the `helpers` files this family's components declare. The
+job copies them to `/ctx/lib` before it runs the repository script, because a
+repository script may source one.
 
 Only components that target the family are read, as in the `collection` leg of
 that family.
 """
 
 import re
+import shlex
 import sys
 from pathlib import Path
 
 from closure import nodes
+from pins import pins
 
 COMPONENTS = Path("components")
 QUOTED = re.compile(r'"([^"]*)"')
@@ -70,20 +79,43 @@ def repo(component, family):
     return None
 
 
+def helper_files(component, text):
+    """Every helper file one component declares, as a path below the library root."""
+    return [
+        (component / arg).as_posix()
+        for parents, name, args in nodes(text)
+        if name == "helpers" and not parents
+        for arg in args
+    ]
+
+
+def repo_script(text, repo):
+    """The shell that sources one repository script with the component's assets exported."""
+    lines = [f"    export {name}={shlex.quote(value)}" for name, value in pins(text)]
+    lines.append(f"    source {shlex.quote(repo.as_posix())}")
+    return "(\n" + "\n".join(lines) + "\n)"
+
+
 def main(argv):
-    if len(argv) not in (2, 3) or (len(argv) == 3 and argv[2] != "--repos"):
+    if len(argv) not in (2, 3) or (len(argv) == 3 and argv[2] not in ("--repos", "--helpers")):
         sys.exit(__doc__)
-    family, repos = argv[1], len(argv) == 3
+    family, mode = argv[1], argv[2] if len(argv) == 3 else None
+    if mode == "--repos":
+        print("set -euo pipefail")
     for manifest in sorted(COMPONENTS.rglob("manifest.kdl")):
         if any(part.startswith(".") for part in manifest.parts[:-1]):
             continue
         text = manifest.read_text()
         if not targets(text, family):
             continue
-        if repos:
+        if mode == "--repos":
             found = repo(manifest.parent, family)
             if found:
-                print(found.as_posix())
+                print(repo_script(text, found))
+            continue
+        if mode == "--helpers":
+            for path in helper_files(manifest.parent, text):
+                print(path)
             continue
         names = lists(text, family)
         if names:

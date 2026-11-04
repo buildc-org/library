@@ -1,0 +1,31 @@
+schema-version 1
+
+description "NVIDIA driver on Debian"
+
+targets "debian"
+
+network "scripts"
+
+requires "build-environment"
+
+imports "hardware/nvidia/common"
+
+provides {
+    "nvidia-kmod" witness="/usr/lib/systemd/system/nvidia-nodes.service"
+    "nvidia-driver" witness="/usr/bin/nvidia-smi"
+}
+
+packages "linux-headers-amd64"
+
+// The nvidia-driver meta package does not install nvidia-smi from the NVIDIA debian13 source.
+// The nvidia-driver-cuda package carries it.
+packages "nvidia-driver" "nvidia-driver-cuda" "nvidia-settings" "nvidia-modprobe"
+
+asset "cuda-keyring" {
+    pin {
+        manual "nvidia rotates the keyring package rarely"
+        version "1.1-1"
+        url "https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/cuda-keyring_{version}_all.deb"
+        sha256 "d0d4ef986a44400f9db33c600ef33a985175e7cc63d805a10e1839c7a1e78f5f"
+    }
+}

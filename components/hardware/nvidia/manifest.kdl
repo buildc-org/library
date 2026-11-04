@@ -2,38 +2,26 @@ schema-version 1
 
 description "NVIDIA drivers"
 
-targets "fedora"
-
-network "scripts"
-
-requires "build-environment" "kernel-devel"
-
-// The open kernel modules are signed with the MOK from secureboot-key. This layer runs after it to have the key.
-after "secureboot-key"
-
-provides {
-    "nvidia-kmod" witness="/usr/lib/systemd/system/nvidia-nodes.service"
-    "nvidia-driver" witness="/usr/bin/nvidia-smi"
-    "nvidia-repo" witness="/etc/pki/rpm-gpg/RPM-GPG-KEY-nvidia-cuda"
-}
-
-secret "mok_privkey"
+targets "fedora" "debian" "ubuntu"
 
 option "version" type="string" {
-    description "The driver version to install"
+    description "The Fedora driver version to install"
     default "latest"
 }
 
-option "kernel-modules" type="bool" {
-    description "Whether to build the kernel modules"
-    default #true
+option "kernel-modules" type="string" {
+    description "Whether to build the kernel modules on Fedora, as build or skip"
+    default "build"
 }
 
-asset "repo-key" {
-    pin {
-        manual "nvidia rotates the repository key rarely"
-        version "73CD9B30"
-        url "https://developer.download.nvidia.com/compute/cuda/repos/fedora44/x86_64/{version}.pub"
-        sha256 "9221458f62030a18d5a28eecf44496016ff9c11548492ac2ce428f75c7513cab"
+on "fedora" {
+    imports {
+        "hardware/nvidia/driver-fedora" {
+            version "$version"
+            kernel-modules "$kernel-modules"
+        }
     }
 }
+
+on "debian" { imports "hardware/nvidia/driver-debian" }
+on "ubuntu" { imports "hardware/nvidia/driver-ubuntu" }

@@ -2,13 +2,35 @@ schema-version 1
 
 description "NVIDIA CUDA toolkit"
 
-targets "fedora"
+targets "fedora" "debian" "ubuntu"
 
-requires "build-environment" "nvidia-driver" "nvidia-repo"
-
-provides "nvidia-cuda" witness="/usr/local/cuda/bin/nvcc"
+requires "build-environment" "nvidia-driver"
 
 option "version" type="string" {
     description "The CUDA version to install"
     default "latest"
+}
+
+on "fedora" {
+    imports {
+        "hardware/nvidia/cuda/fedora-toolkit" {
+            version "$version"
+        }
+    }
+}
+
+on "debian" {
+    imports {
+        "hardware/nvidia/cuda/debian-toolkit" {
+            version "$version"
+        }
+    }
+}
+
+on "ubuntu" {
+    imports {
+        "hardware/nvidia/cuda/ubuntu-toolkit" {
+            version "$version"
+        }
+    }
 }
