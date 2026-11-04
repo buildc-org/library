@@ -1,0 +1,41 @@
+schema-version 1
+
+description "NVIDIA driver on Fedora"
+
+targets "fedora"
+
+network "scripts"
+
+requires "build-environment" "kernel-devel"
+
+// The open kernel modules are signed with the MOK from secureboot-key. This layer runs after it to have the key.
+after "secureboot-key"
+
+imports "hardware/nvidia-common" "hardware/nvidia-helper"
+
+provides {
+    "nvidia-kmod" witness="/usr/lib/systemd/system/nvidia-nodes.service"
+    "nvidia-driver" witness="/usr/bin/nvidia-smi"
+}
+
+secret "mok_privkey"
+
+option "version" type="string" {
+    description "The NVIDIA driver version to install"
+    default "latest"
+}
+
+option "kernel-modules" type="string" {
+    description "Whether to build the kernel modules, as build or skip"
+    default "build"
+}
+
+// The NVIDIA archive can lag the open module release that compiles against the image kernel. This layer uses the fedora-nvidia archive instead.
+asset "driver-key" {
+    pin {
+        manual "negativo17 rotates the repository key rarely"
+        version "slaanesh"
+        url "https://negativo17.org/repos/RPM-GPG-KEY-{version}"
+        sha256 "cd037a2d00bd3126e808d53921e28ca7bafabc1834abd675d4ad4b5b4d850f49"
+    }
+}

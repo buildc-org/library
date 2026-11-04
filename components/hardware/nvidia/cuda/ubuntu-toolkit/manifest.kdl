@@ -1,0 +1,25 @@
+schema-version 1
+
+description "NVIDIA CUDA toolkit on Ubuntu"
+
+targets "ubuntu"
+
+requires "build-environment" "nvidia-driver"
+
+imports "hardware/nvidia-helper"
+
+provides "nvidia-cuda" witness="/usr/local/cuda/bin/nvcc"
+
+option "version" type="string" {
+    description "The CUDA version to install"
+    default "latest"
+}
+
+asset "cuda-keyring" {
+    pin {
+        manual "nvidia rotates the keyring package rarely"
+        version "1.1-1"
+        url "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2604/x86_64/cuda-keyring_{version}_all.deb"
+        sha256 "f7f474b5f6a4adf987aa587920df00e713285958ef6a913dda1945a544a3099e"
+    }
+}

@@ -1,0 +1,25 @@
+schema-version 1
+
+description "NVIDIA CUDA toolkit on Fedora"
+
+targets "fedora"
+
+requires "build-environment" "nvidia-driver"
+
+imports "hardware/nvidia-helper"
+
+provides "nvidia-cuda" witness="/usr/local/cuda/bin/nvcc"
+
+option "version" type="string" {
+    description "The CUDA version to install"
+    default "latest"
+}
+
+asset "repo-key" {
+    pin {
+        manual "nvidia rotates the repository key rarely"
+        version "73CD9B30"
+        url "https://developer.download.nvidia.com/compute/cuda/repos/fedora44/x86_64/{version}.pub"
+        sha256 "9221458f62030a18d5a28eecf44496016ff9c11548492ac2ce428f75c7513cab"
+    }
+}

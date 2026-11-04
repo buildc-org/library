@@ -1,0 +1,17 @@
+schema-version 1
+
+description "NVIDIA driver on Ubuntu"
+
+targets "ubuntu"
+
+requires "build-environment"
+
+imports "hardware/nvidia-common"
+
+provides {
+    "nvidia-kmod" witness="/usr/lib/systemd/system/nvidia-nodes.service"
+    "nvidia-driver" witness="/usr/bin/nvidia-smi"
+}
+
+packages "linux-headers-generic"
+packages "nvidia-driver-615-open" "nvidia-settings" "nvidia-modprobe"

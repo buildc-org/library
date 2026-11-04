@@ -1,0 +1,5 @@
+schema-version 1
+
+description "NVIDIA repository and toolkit helpers"
+
+helpers "lib/nvidia-repo.sh" "lib/nvidia-apt-repo.sh" "lib/cuda-toolkit.sh"
