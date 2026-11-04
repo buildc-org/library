@@ -6,7 +6,7 @@ targets "debian"
 
 requires "build-environment" "nvidia-driver"
 
-imports "hardware/nvidia-helper"
+imports "hardware/nvidia/common"
 
 provides "nvidia-cuda" witness="/usr/local/cuda/bin/nvcc"
 

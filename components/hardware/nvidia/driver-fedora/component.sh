@@ -1,7 +1,7 @@
 source /ctx/lib/family.sh
 source /ctx/lib/kernel-helpers.sh
 source /ctx/lib/sign-helpers.sh
-source /ctx/lib/nvidia-repo.sh
+source /ctx/lib/nvidia-driver.sh
 source /usr/libexec/kernel-devel-helpers.sh
 
 if [ "$OPT_KERNEL_MODULES" != build ]; then

@@ -6,7 +6,7 @@ targets "ubuntu"
 
 requires "build-environment"
 
-imports "hardware/nvidia-common"
+imports "hardware/nvidia/common"
 
 provides {
     "nvidia-kmod" witness="/usr/lib/systemd/system/nvidia-nodes.service"

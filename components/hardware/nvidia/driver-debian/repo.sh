@@ -1,4 +1,6 @@
-source /ctx/lib/nvidia-apt-repo.sh
+source /ctx/lib/family.sh
 
-setup_nvidia_apt_repo "$ASSET_CUDA_KEYRING_URL" "$ASSET_CUDA_KEYRING_SHA256" \
-    "https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/"
+add_repo_keyring "nvidia-cuda" \
+    "https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/" "/" "" \
+    "$ASSET_CUDA_KEYRING_URL" "$ASSET_CUDA_KEYRING_SHA256" \
+    "usr/share/keyrings/cuda-archive-keyring.gpg"

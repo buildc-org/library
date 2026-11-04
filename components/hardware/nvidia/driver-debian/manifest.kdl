@@ -6,7 +6,7 @@ targets "debian"
 
 requires "build-environment"
 
-imports "hardware/nvidia-common" "hardware/nvidia-helper"
+imports "hardware/nvidia/common"
 
 provides {
     "nvidia-kmod" witness="/usr/lib/systemd/system/nvidia-nodes.service"

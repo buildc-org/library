@@ -11,7 +11,9 @@ requires "build-environment" "kernel-devel"
 // The open kernel modules are signed with the MOK from secureboot-key. This layer runs after it to have the key.
 after "secureboot-key"
 
-imports "hardware/nvidia-common" "hardware/nvidia-helper"
+imports "hardware/nvidia/common"
+
+helpers "lib/nvidia-driver.sh"
 
 provides {
     "nvidia-kmod" witness="/usr/lib/systemd/system/nvidia-nodes.service"
