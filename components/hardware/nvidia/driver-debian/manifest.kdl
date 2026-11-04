@@ -4,6 +4,8 @@ description "NVIDIA driver on Debian"
 
 targets "debian"
 
+network "scripts"
+
 requires "build-environment"
 
 imports "hardware/nvidia/common"

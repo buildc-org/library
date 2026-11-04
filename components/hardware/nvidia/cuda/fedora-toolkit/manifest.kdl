@@ -4,6 +4,8 @@ description "NVIDIA CUDA toolkit on Fedora"
 
 targets "fedora"
 
+network "scripts"
+
 requires "build-environment" "nvidia-driver"
 
 imports "hardware/nvidia/common"
