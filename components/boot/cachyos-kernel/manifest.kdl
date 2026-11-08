@@ -14,7 +14,7 @@ key "secureboot" {
     private "MOK.priv"
 }
 
-requires "build-environment" "initramfs-generation"
+requires "build-environment" "initramfs-generation" "package-manager/dnf5"
 
 after "os-release"
 

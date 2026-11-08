@@ -1,11 +1,3 @@
-NEEDS_OSTREE=2025.3
-HAS_OSTREE="$(dpkg-query -W -f '${Version}' libostree-1-1)"
-if ! dpkg --compare-versions "$HAS_OSTREE" ge "$NEEDS_OSTREE"; then
-    echo "this base carries libostree ${HAS_OSTREE}, and bootc" \
-        "${ASSET_BOOTC_VERSION} needs >= ${NEEDS_OSTREE}" >&2
-    exit 1
-fi
-
 vendor="$(. /etc/os-release && echo "$ID")"
 tools=/tmp/bootc-tools.tar.zst
 from_source=yes

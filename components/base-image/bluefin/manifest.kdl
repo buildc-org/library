@@ -8,7 +8,7 @@ provides {
     "flatpak" witness="/usr/bin/flatpak"
     "gnome-desktop" witness="/usr/bin/gnome-shell"
     "just" witness="/usr/bin/just"
-    "package-manager/dnf5" witness="/usr/bin/dnf5"
+    "package-manager/dnf5" witness="/usr/bin/dnf5" package="dnf5"
 }
 
 imports "fedora/build-environment" "identity"

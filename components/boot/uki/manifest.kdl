@@ -8,7 +8,7 @@ provides "boot-chain-uki" witness="/boot/EFI/systemd/systemd-bootx64.efi"
 
 removes "bootupctl"
 
-requires "build-environment" "initramfs-generation"
+requires "build-environment" "initramfs-generation" "package-manager/dnf5"
 
 key "secureboot" {
     generator "openssl" profile="module-signing" bits=4096

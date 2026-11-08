@@ -6,7 +6,7 @@ targets "fedora"
 
 network "scripts"
 
-requires "build-environment" "nvidia-driver"
+requires "build-environment" "nvidia-driver" "package-manager/dnf5"
 
 imports "hardware/nvidia/common"
 

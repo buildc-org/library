@@ -4,7 +4,7 @@ description "Bazaar search in KRunner"
 
 targets "fedora"
 
-requires "build-environment" "plasma-desktop" "bazaar"
+requires "build-environment" "plasma-desktop" "bazaar" "package-manager/dnf5"
 
 copr "ublue-os/packages"
 

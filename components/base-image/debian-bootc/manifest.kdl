@@ -5,6 +5,7 @@ description "Debian bootc base image"
 
 provides {
     "package-manager/apt" witness="/usr/bin/apt-get"
+    "libostree" package="libostree-1-1"
 }
 
 imports "deb/build-environment" "deb/bootc-base" "identity"

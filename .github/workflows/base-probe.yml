@@ -48,7 +48,9 @@ jobs:
           said=""
           skipped=""
           failed=""
-          while read -r dir image paths; do
+          while IFS='|' read -r dir image family paths packages; do
+            [ "${paths}" != "-" ] || paths=""
+            [ "${packages}" != "-" ] || packages=""
             if ! refused="$(podman pull -q "${image}" 2>&1 > /dev/null)"; then
               printf '%s\n' "${refused}" >&2
               if grep -qi unauthorized <<< "${refused}"; then
@@ -60,10 +62,23 @@ jobs:
               fi
               continue
             fi
-            measured="$(podman run --rm --env "PATHS=${paths}" "${image}" \
-              sh -c 'for p in $PATHS; do [ -e "$p" ] && echo "$p"; done; true')"
-            readarray -t present <<< "${measured}"
-            change="$(python3 .github/probe.py correct "${dir}" "${present[@]}")"
+            measured="$(podman run --rm \
+              -v "${PWD}/.github/probe-image.sh:/probe-image.sh:ro" \
+              --env "PATHS=${paths}" --env "PACKAGES=${packages}" --env "FAMILY=${family}" \
+              "${image}" bash /probe-image.sh)"
+            present=()
+            versions=()
+            while IFS= read -r line; do
+              case "${line}" in
+                path:*) present+=("${line#path:}") ;;
+                version:*) versions+=("${line#version:}") ;;
+              esac
+            done <<< "${measured}"
+            args=("${present[@]}")
+            if [ "${#versions[@]}" -gt 0 ]; then
+              args+=(--version "${versions[@]}")
+            fi
+            change="$(python3 .github/probe.py correct "${dir}" "${args[@]}")"
             if [ -n "${change}" ]; then
               echo "${change}"
               said="${said}${said:+$'\n'}- ${change}"
@@ -106,7 +121,7 @@ jobs:
               echo "Not measured, because the registry refused the pull as unauthorized: ${SKIPPED}."
               echo
             fi
-            echo "A name without a \`witness=\` is never measured and keeps its line."
+            echo "A name without a \`witness=\` keeps its line. A name that declares a \`package\` still has its version measured."
             echo
             echo "GitHub starts no workflow for a pull request that the workflow token"
             echo "opens or pushes to. Close and reopen this pull request to run its checks."

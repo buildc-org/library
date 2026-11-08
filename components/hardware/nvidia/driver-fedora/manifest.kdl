@@ -6,7 +6,7 @@ targets "fedora"
 
 network "scripts"
 
-requires "build-environment" "kernel-devel"
+requires "build-environment" "kernel-devel" "package-manager/dnf5"
 
 // The open kernel modules are signed with the MOK from secureboot-key. This layer runs after it to have the key.
 after "secureboot-key"
@@ -32,7 +32,7 @@ option "kernel-modules" type="string" {
     default "build"
 }
 
-// The NVIDIA archive can lag the open module release that compiles against the image kernel. This layer uses the fedora-nvidia archive instead.
+// The NVIDIA archive can lag the open module release that compiles against the image kernel. This layer uses the fedora-nvidia repository instead and pins its key below.
 asset "driver-key" {
     pin {
         manual "negativo17 rotates the repository key rarely"
