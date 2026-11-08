@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from probe import correct, library, main, witnesses
+from probe import correct, library, main, set_versions, witnesses
 
 BASE = """schema-version 1
 
@@ -86,8 +86,43 @@ class Probe(unittest.TestCase):
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             main(["probe.py", "list"])
-        self.assertEqual(out.getvalue(), "base-image/example example.invalid/base:1 "
-                         "/usr/bin/bootc /usr/bin/tool /usr/sbin/sshd\n")
+        self.assertEqual(out.getvalue(), "base-image/example|example.invalid/base:1|fedora|"
+                         "/usr/bin/bootc /usr/bin/tool /usr/sbin/sshd|-\n")
+
+    def test_a_package_backed_capability_records_its_version(self):
+        text = BASE.replace('    "rechunking"\n',
+                            '    "rechunking"\n    "libostree" package="libostree-1-1"\n')
+        corrected, said = correct("m", text, {}, set(), {"libostree-1-1": "2025.3"})
+        self.assertIn('"libostree" package="libostree-1-1" version="2025.3"', corrected)
+        self.assertEqual(said, "`m` `provides` records `libostree-1-1` 2025.3")
+
+    def test_a_missing_package_drops_a_stale_version(self):
+        text = BASE.replace('    "rechunking"\n',
+                            '    "rechunking"\n    "libostree" package="libostree-1-1" version="2025.2"\n')
+        corrected, said = correct("m", text, {}, set(), {"libostree-1-1": ""})
+        self.assertIn('"libostree" package="libostree-1-1"\n', corrected)
+        self.assertEqual(said, "`m` `provides` drops the version of `libostree-1-1`")
+
+    def test_a_version_is_replaced_in_place(self):
+        text = BASE.replace('    "rechunking"\n',
+                            '    "rechunking"\n    "libostree" package="libostree-1-1" version="2025.2"\n')
+        corrected, changed = set_versions(text, {"libostree-1-1": "2025.3"})
+        self.assertIn('"libostree" package="libostree-1-1" version="2025.3"', corrected)
+        self.assertEqual(changed, ["libostree-1-1"])
+
+    def test_the_command_records_a_version(self):
+        self.measured()
+        text = BASE.replace('    "rechunking"\n',
+                            '    "rechunking"\n    "libostree" package="libostree-1-1"\n')
+        self.write("base-image/example", text)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            main(["probe.py", "correct", "base-image/example",
+                  "/usr/sbin/sshd", "/usr/bin/tool", "/usr/bin/bootc",
+                  "--version", "libostree-1-1=2025.3"])
+        written = Path("components/base-image/example/manifest.kdl").read_text()
+        self.assertIn('"libostree" package="libostree-1-1" version="2025.3"', written)
+        self.assertIn("records `libostree-1-1` 2025.3", out.getvalue())
 
     def test_a_base_that_loses_every_name_keeps_no_empty_block(self):
         text = BASE.replace('    "rechunking"\n', "")
