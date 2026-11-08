@@ -21,6 +21,7 @@ requires "build-environment"
 after "os-release"
 
 requires "container-runtime"
+requires "libostree" min="2025.3"
 
 
 // Debian and Ubuntu ship no bootc package, so this component compiles the pinned release at image build time.

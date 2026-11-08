@@ -13,7 +13,7 @@ imports "repos/$repo"
 
 network "scripts"
 
-requires "build-environment"
+requires "build-environment" "package-manager/dnf5"
 
 on "fedora" {
     packages {

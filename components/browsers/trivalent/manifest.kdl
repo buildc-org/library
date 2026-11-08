@@ -4,7 +4,7 @@ description "Trivalent web browser"
 
 targets "fedora"
 
-requires "build-environment" "graphical-session" "selinux-policy"
+requires "build-environment" "graphical-session" "selinux-policy" "package-manager/dnf5"
 
 requires "flatpak"
 

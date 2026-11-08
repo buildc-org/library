@@ -6,7 +6,7 @@ targets "fedora"
 
 network "scripts"
 
-requires "kernel-devel" "graphical-session"
+requires "kernel-devel" "graphical-session" "package-manager/dnf5"
 
 // The kvmfr module is signed with the MOK from secureboot-key. This layer runs after it to have the key.
 after "secureboot-key"

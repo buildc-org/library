@@ -6,7 +6,7 @@ targets "fedora"
 
 provides "negativo17-fedora-multimedia"
 
-requires "build-environment"
+requires "build-environment" "package-manager/dnf5"
 
 packages "ffmpeg" "ffmpeg-libs" "pipewire-libs-extra"
 

@@ -6,6 +6,6 @@ targets "fedora" "debian" "ubuntu"
 
 requires "build-environment"
 
-on "fedora" { packages "tailscale" enablerepo="tailscale-stable" }
+on "fedora" { requires "package-manager/dnf5"; packages "tailscale" enablerepo="tailscale-stable" }
 
 on "debian" "ubuntu" { packages "tailscale" }

@@ -3,3 +3,5 @@ schema-version 1
 description "Trims unused Workstation packages"
 
 targets "fedora"
+
+requires "package-manager/dnf5"

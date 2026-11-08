@@ -4,6 +4,8 @@ description "Kernel headers for module builds"
 
 targets "fedora"
 
+requires "package-manager/dnf5"
+
 provides "kernel-devel" witness="/usr/libexec/kernel-devel-helpers.sh" build-only=#true
 
 after "kernel"

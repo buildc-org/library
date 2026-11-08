@@ -4,7 +4,7 @@ description "System-wide hardened malloc"
 
 targets "fedora"
 
-requires "build-environment"
+requires "build-environment" "package-manager/dnf5"
 
 provides "hardened-malloc"
 
