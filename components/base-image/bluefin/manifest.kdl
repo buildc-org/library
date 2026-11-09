@@ -3,6 +3,7 @@ schema-version 1
 description "GNOME desktop base image"
 
 provides {
+    "bootc" witness="/usr/bin/bootc"
     "rechunking"
     "graphical-session"
     "flatpak" witness="/usr/bin/flatpak"
