@@ -8,7 +8,7 @@ provides {
     "flatpak" witness="/usr/bin/flatpak"
     "just" witness="/usr/bin/just"
     "plasma-desktop" witness="/usr/bin/plasmashell"
-    "package-manager/dnf5" witness="/usr/bin/dnf5" package="dnf5"
+    "package-manager/dnf5" witness="/usr/bin/dnf5" package="dnf5" version="5.4.7.0"
 }
 
 imports "fedora/build-environment" "identity"
