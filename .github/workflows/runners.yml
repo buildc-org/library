@@ -1,0 +1,261 @@
+name: Publish the runner images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - components/base-image/runners/**
+      - components/build-tools/**
+      - components/fedora/build-environment/**
+      - runner-components.kdl
+      - runner-images/**
+      - .github/workflows/runners.yml
+  schedule:
+    - cron: '15 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      release_now:
+        description: Publish the newest signed build now instead of after the release delay
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Choose the runner images
+    runs-on: ubuntu-26.04
+    outputs:
+      images: ${{ steps.list.outputs.images }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: List the image definitions
+        id: list
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(runner-images/*.image.kdl)
+          {
+            printf '['
+            for index in "${!files[@]}"; do
+              [ "$index" -eq 0 ] || printf ','
+              name="${files[$index]##*/}"
+              printf '"%s"' "${name%.image.kdl}"
+            done
+            printf ']'
+          } > images.json
+          echo "images=$(cat images.json)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: build ${{ matrix.image }}
+    needs: plan
+    if: needs.plan.outputs.images != '[]' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.plan.outputs.images) }}
+    env:
+      IMAGE: ${{ matrix.image }}
+      REGISTRY: ghcr.io/${{ github.repository_owner }}/library/runners
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Maximize build space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/share/swift \
+            /usr/local/share/powershell /usr/local/share/chromium
+          df -h /
+
+      - name: Settle the container storage driver
+        run: |
+          sudo mkdir -p /etc/containers
+          printf '[storage]\ndriver = "overlay"\nrunroot = "/run/containers/storage"\ngraphroot = "/var/lib/containers/storage"\n' \
+            | sudo tee /etc/containers/storage.conf > /dev/null
+          # A failed reset is acceptable because the container storage directories are removed next.
+          sudo podman system reset --force > /dev/null 2>&1 || true
+          sudo rm -rf /var/lib/containers/storage /run/containers/storage
+          sudo podman info --format 'storage: {{.Store.GraphDriverName}} {{.Store.GraphOptions}}'
+
+      - name: Install the released tool
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dir="${RUNNER_TEMP}/buildc"
+          mkdir -p "$dir"
+          gh release download --repo buildc-org/buildc --dir "$dir" \
+            --pattern 'buildc-v*-x86_64-linux-musl.tar.gz*'
+          (cd "$dir" && printf '%s  %s\n' "$(cat ./*.sha256)" ./*.tar.gz \
+            | sha256sum --check --status)
+          tar -xzf "$dir"/*.tar.gz -C "$dir"
+          {
+            echo "ROOT=${RUNNER_TEMP}/runner"
+            echo "BUILDC_BIN=${dir}/buildc"
+            echo "BUILDC_ASSETS=${dir}/assets"
+          } >> "${GITHUB_ENV}"
+
+      - name: Scaffold a build repository from this library
+        run: |
+          set -euo pipefail
+          "$BUILDC_BIN" create repo "$IMAGE" --root "$ROOT" --no-tui \
+            --owner buildc-org --host github.com
+          # The scaffold points at the remote library and the build must read this checkout.
+          awk -v root="$GITHUB_WORKSPACE" '
+            $0 == "sources {" {
+              replaced++
+              print "sources {"
+              print "    components \"buildc\" {"
+              print "        dir \"" root "/components\""
+              print "    }"
+              print "}"
+              replacing = 1
+              next
+            }
+            replacing && $0 == "}" { replacing = 0; next }
+            !replacing
+            END { if (replacing || replaced != 1) exit 1 }
+          ' "${ROOT}/repo.kdl" > "${ROOT}/repo.kdl.new"
+          mv "${ROOT}/repo.kdl.new" "${ROOT}/repo.kdl"
+          for declaration in \
+            '    components "buildc" {' \
+            "        dir \"${GITHUB_WORKSPACE}/components\""; do
+            if [ "$(grep -Fxc "$declaration" "${ROOT}/repo.kdl" || true)" != 1 ]; then
+              echo "::error::repo.kdl must carry exactly one ${declaration}"
+              exit 1
+            fi
+          done
+          if grep -qE '^[[:space:]]+(url|path) ' "${ROOT}/repo.kdl"; then
+            echo '::error::repo.kdl must not carry a remote source'
+            exit 1
+          fi
+          rm -f "${ROOT}/${IMAGE}.image.kdl"
+          "$BUILDC_BIN" create image "$IMAGE" --root "$ROOT" --no-tui \
+            --owner buildc-org --base "base-image/runners/fedora-45"
+          "$BUILDC_BIN" import component "buildc/build-tools/podman" \
+            --root "$ROOT" --image "$IMAGE" --no-tui
+          "$BUILDC_BIN" import component "buildc/build-tools/buildah" \
+            --root "$ROOT" --image "$IMAGE" --no-tui
+          # The published definition replaces the scaffold's placeholder.
+          cp "runner-images/${IMAGE}.image.kdl" "${ROOT}/${IMAGE}.image.kdl"
+          cd "$ROOT" && "$BUILDC_BIN" generate
+
+      - name: Build the runner
+        run: |
+          set -euo pipefail
+          cd "$ROOT"
+          echo "::group::${IMAGE} Containerfile"
+          cat "generated/${IMAGE}/Containerfile"
+          echo "::endgroup::"
+          sudo IMAGE_REGISTRY="$REGISTRY" "$BUILDC_BIN" build --no-tui --target "$IMAGE"
+
+      - name: Test the runner by building a sample image inside the runner
+        run: |
+          set -euo pipefail
+          sudo podman run --rm --privileged "localhost/${IMAGE}:latest" sh -euc '
+            podman --version
+            buildah --version
+            mkdir -p /sample
+            printf "FROM scratch\nCOPY hello /hello\n" > /sample/Containerfile
+            printf "hello runner\n" > /sample/hello
+            podman build --network=none --tag sample /sample
+            podman create --name sample sample true
+            podman cp sample:/hello /hello-out
+            podman rm sample
+            test "$(cat /hello-out)" = "hello runner"
+          '
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+        with:
+          cosign-release: 'v2.6.3'
+
+      - name: Push and sign the pending image
+        env:
+          ACTOR: ${{ github.actor }}
+          TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pending="pending-$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA:0:12}"
+          printf '%s' "$TOKEN" | sudo podman login ghcr.io -u "$ACTOR" --password-stdin
+          sudo podman push --digestfile "${RUNNER_TEMP}/digest" \
+            "localhost/${IMAGE}:latest" "${REGISTRY}/${IMAGE}:${pending}"
+          digest="$(sudo cat "${RUNNER_TEMP}/digest")"
+          printf '%s' "$TOKEN" | cosign login ghcr.io -u "$ACTOR" --password-stdin
+          cosign sign --yes "${REGISTRY}/${IMAGE}@${digest}"
+          echo "::notice::Published ${REGISTRY}/${IMAGE}@${digest} as ${pending}"
+
+  release:
+    name: release ${{ matrix.image }}
+    needs: [plan, build]
+    if: needs.plan.outputs.images != '[]' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.plan.outputs.images) }}
+    env:
+      IMAGE: ${{ matrix.image }}
+      REGISTRY: ghcr.io/${{ github.repository_owner }}/library/runners
+      ACTOR: ${{ github.actor }}
+      TOKEN: ${{ github.token }}
+      RELEASE_NOW: ${{ inputs.release_now }}
+      # Promotion accepts only a signature from this workflow on main.
+      IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/runners.yml@refs/heads/main
+      ISSUER: https://token.actions.githubusercontent.com
+    steps:
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+        with:
+          cosign-release: 'v2.6.3'
+
+      # An image is promoted only after its build has aged the release delay.
+      - name: Promote the newest signed image that has aged
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends skopeo
+          repo="${REGISTRY}/${IMAGE}"
+          skopeo list-tags --creds "${ACTOR}:${TOKEN}" "docker://${repo}" > tags.json
+          # The pending tag starts with a sortable UTC timestamp.
+          tags="$(jq -r '.Tags[]' tags.json \
+            | { grep -E '^pending-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}$' || true; } | sort -r)"
+          printf '%s' "$TOKEN" | cosign login ghcr.io -u "$ACTOR" --password-stdin
+          delay=$((7 * 24 * 60 * 60))
+          if [ "${RELEASE_NOW:-false}" = "true" ]; then
+            delay=0
+          fi
+          now="$(date -u +%s)"
+          for pending in $tags; do
+            created="$(skopeo inspect --creds "${ACTOR}:${TOKEN}" \
+              --format '{{.Created}}' "docker://${repo}:${pending}")"
+            age=$((now - $(date -u -d "$created" +%s)))
+            [ "$age" -ge "$delay" ] || continue
+            digest="$(skopeo inspect --creds "${ACTOR}:${TOKEN}" \
+              --format '{{.Digest}}' "docker://${repo}:${pending}")"
+            if ! cosign verify \
+              --certificate-identity "$IDENTITY" \
+              --certificate-oidc-issuer "$ISSUER" "${repo}@${digest}" > /dev/null; then
+              echo "::warning::Skipped ${repo}@${digest} from ${pending} because it has no signature from ${IDENTITY}"
+              continue
+            fi
+            skopeo copy --all \
+              --src-creds "${ACTOR}:${TOKEN}" --dest-creds "${ACTOR}:${TOKEN}" \
+              "docker://${repo}@${digest}" "docker://${repo}:${IMAGE}"
+            echo "::notice::Promoted ${pending} to ${repo}:${IMAGE}. The build is ${age} seconds old."
+            exit 0
+          done
+          echo "::notice::No ${IMAGE} build has reached the release delay with a signature. Nothing was released."
