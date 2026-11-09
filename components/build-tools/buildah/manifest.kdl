@@ -1,0 +1,9 @@
+schema-version 1
+
+description "Buildah image builder"
+
+targets "fedora"
+
+provides "buildah" witness="/usr/bin/buildah" package="buildah"
+
+packages "buildah"

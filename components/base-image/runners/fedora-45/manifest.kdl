@@ -1,0 +1,11 @@
+schema-version 1
+
+description "Fedora 45 runner base"
+
+provides {
+    "package-manager/dnf5" witness="/usr/bin/dnf5" package="dnf5"
+}
+
+base "registry.fedoraproject.org/fedora:45" {
+    family "fedora"
+}

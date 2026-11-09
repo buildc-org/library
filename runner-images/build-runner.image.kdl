@@ -1,0 +1,24 @@
+schema-version 1
+
+image {
+    name "Build Runner"
+    id "build-runner"
+    url "https://github.com/buildc-org/library"
+
+    base-image {
+        runners {
+            fedora-45
+        }
+    }
+
+    fedora {
+        build-environment
+    }
+
+    identity
+
+    build-tools {
+        podman
+        buildah
+    }
+}
