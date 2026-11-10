@@ -11,7 +11,7 @@ provides "selinux-policy" witness="/usr/sbin/semodule"
 provides "container-runtime"
 
 provides {
-    "bootc" witness="/usr/bin/bootc"
+    "bootc" witness="/usr/bin/bootc" package="bootc"
     "bootupctl" witness="/usr/bin/bootupctl"
     "podman" witness="/usr/bin/podman"
     "crun" witness="/usr/bin/crun"

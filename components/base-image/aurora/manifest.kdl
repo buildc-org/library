@@ -3,7 +3,7 @@ schema-version 1
 description "KDE Plasma desktop base image"
 
 provides {
-    "bootc" witness="/usr/bin/bootc"
+    "bootc" witness="/usr/bin/bootc" package="bootc"
     "rechunking"
     "graphical-session"
     "flatpak" witness="/usr/bin/flatpak"
