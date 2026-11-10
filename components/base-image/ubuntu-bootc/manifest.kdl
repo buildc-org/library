@@ -4,7 +4,7 @@ description "Ubuntu bootc base image"
 
 provides {
     "package-manager/apt" witness="/usr/bin/apt-get"
-    "libostree" package="libostree-1-1"
+    "libostree" package="libostree-1-1" version="2025.7"
 }
 
 imports "deb/build-environment" "deb/bootc-base" "identity"
