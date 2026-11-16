@@ -3,13 +3,15 @@ schema-version 1
 description "Fedora KDE Plasma base image"
 
 provides {
-    "bootc" witness="/usr/bin/bootc" package="bootc"
+    "bootc" witness="/usr/bin/bootc" package="bootc" version="1.17.1"
     "rechunking"
     "graphical-session"
     "flatpak" witness="/usr/bin/flatpak"
     "just" witness="/usr/bin/just"
     "plasma-desktop" witness="/usr/bin/plasmashell"
-    "package-manager/dnf5" witness="/usr/bin/dnf5" package="dnf5" version="5.4.7.0"
+    "package-manager/dnf5" witness="/usr/bin/dnf5" package="dnf5"
+    "buildah" witness="/usr/bin/buildah"
+    "podman" witness="/usr/bin/podman"
 }
 
 imports "fedora/build-environment" "identity"
