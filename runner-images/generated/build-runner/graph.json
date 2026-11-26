@@ -1,0 +1,69 @@
+{
+  "image": "build-runner",
+  "capabilities": [
+    {
+      "name": "build-environment",
+      "kind": "capability",
+      "build_only": false,
+      "provider": "fedora/build-environment",
+      "required_by": [],
+      "after": []
+    },
+    {
+      "name": "buildah",
+      "kind": "file",
+      "build_only": false,
+      "provider": "containers/buildah",
+      "required_by": [],
+      "after": []
+    },
+    {
+      "name": "os-release",
+      "kind": "capability",
+      "build_only": false,
+      "provider": "os-release",
+      "required_by": [],
+      "after": []
+    },
+    {
+      "name": "package-manager/dnf5",
+      "kind": "capability",
+      "build_only": false,
+      "provider": "base",
+      "required_by": [],
+      "after": []
+    },
+    {
+      "name": "podman",
+      "kind": "file",
+      "build_only": false,
+      "provider": "containers/podman",
+      "required_by": [],
+      "after": []
+    }
+  ],
+  "overrides": [],
+  "imports": [
+    {
+      "component": "fedora/build-environment",
+      "by": "base-image/fedora-45",
+      "how": "imports"
+    },
+    {
+      "component": "os-release",
+      "by": "build-runner",
+      "how": "lists"
+    },
+    {
+      "component": "containers/podman",
+      "by": "build-runner",
+      "how": "lists"
+    },
+    {
+      "component": "containers/buildah",
+      "by": "build-runner",
+      "how": "lists"
+    }
+  ],
+  "suppressed": []
+}

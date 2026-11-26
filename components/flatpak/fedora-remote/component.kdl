@@ -1,0 +1,12 @@
+schema-version 1
+
+description "Installs the listed Flatpak apps from Fedora's own Flatpak remote on first boot"
+
+targets "fedora"
+
+requires "flatpak"
+
+option "flatpaks" type="list" {
+    description "Flatpak IDs that the first boot installs from the fedora remote. The first boot adds the remote only if this list names an ID."
+    default
+}

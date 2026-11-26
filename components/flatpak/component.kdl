@@ -1,0 +1,18 @@
+schema-version 1
+
+description "Flatpak and the first-boot install of the listed Flatpak apps"
+
+targets "fedora" "rhel" "debian" "ubuntu"
+
+packages "flatpak"
+
+collects "flatpaks.list" into="/usr/share/flatpak-defaults/apps.list" priority=500
+
+provides "flatpak" witness="/usr/bin/flatpak"
+
+helpers "lib/write-list.sh"
+
+option "flatpaks" type="list" {
+    description "Flatpak IDs that the first boot installs from Flathub"
+    default
+}

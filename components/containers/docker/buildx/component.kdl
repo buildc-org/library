@@ -1,0 +1,9 @@
+schema-version 1
+
+description "Docker Buildx builder"
+
+targets "fedora"
+
+provides "buildx" witness="/usr/libexec/docker/cli-plugins/docker-buildx" package="docker-buildx"
+
+packages "docker-buildx"

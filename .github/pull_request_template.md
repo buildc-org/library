@@ -11,6 +11,6 @@ Each criterion is set out in [CONTRIBUTING.md](https://github.com/buildc-org/lib
 - [ ] Every file's licence is known, and a file from elsewhere carries its own SPDX header.
 - [ ] The scripts pass `shellcheck` and `shfmt` and follow the shell rules.
 - [ ] `targets`, `provides` and `requires` are declared, and the component's tests pass.
-- [ ] A `satisfies` claim sits under `hardening/` in a component that targets `rhel`.
-- [ ] A script that fetches or installs through a package manager declares `network "scripts"`.
+- [ ] A `satisfies` claim sits under `compliance/` in a component that targets `rhel`.
+- [ ] A script that fetches or installs through a package manager declares `permissions { scripts { network #true } }`.
 - [ ] Every commit is signed off with `git commit -s`.

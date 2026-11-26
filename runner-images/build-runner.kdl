@@ -1,0 +1,18 @@
+schema-version 1
+
+os-release {
+    name "Build Runner"
+    home-url "{base-url}/tree/main/runner-images"
+    documentation-url "{base-url}/tree/main/runner-images"
+    support-url "{base-url}/issues"
+    bug-report-url "{base-url}/issues"
+}
+
+base-image {
+    fedora-45
+}
+
+containers {
+    podman
+    buildah
+}

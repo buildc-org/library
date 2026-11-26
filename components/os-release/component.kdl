@@ -1,0 +1,40 @@
+schema-version 1
+
+description "Image identity in os-release"
+
+provides "os-release" exclusive=#true
+
+option "name" type="string" {
+    description "os-release NAME, which the boot menu and the desktop read"
+    default ""
+}
+
+option "pretty-name" type="string" {
+    description "os-release PRETTY_NAME. If it is unset and `name` is set, then PRETTY_NAME is the name followed by the image version."
+    default ""
+}
+
+option "default-hostname" type="string" {
+    description "os-release DEFAULT_HOSTNAME"
+    default "{image-id}"
+}
+
+option "home-url" type="string" {
+    description "os-release HOME_URL"
+    default ""
+}
+
+option "documentation-url" type="string" {
+    description "os-release DOCUMENTATION_URL"
+    default ""
+}
+
+option "support-url" type="string" {
+    description "os-release SUPPORT_URL"
+    default ""
+}
+
+option "bug-report-url" type="string" {
+    description "os-release BUG_REPORT_URL"
+    default ""
+}

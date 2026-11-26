@@ -1,0 +1,16 @@
+schema-version 1
+name "runner-images"
+base-url "https://github.com/buildc-org/library"
+registry "ghcr.io/buildc-org/library/runners"
+
+libraries {
+    remote {
+        library {
+            source ".."
+        }
+    }
+}
+
+builds {
+    build-runner "./build-runner"
+}

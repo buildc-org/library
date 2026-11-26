@@ -1,0 +1,9 @@
+schema-version 1
+
+description "Docker container engine"
+
+targets "fedora"
+
+provides "docker" witness="/usr/bin/dockerd" package="moby-engine"
+
+packages "moby-engine"

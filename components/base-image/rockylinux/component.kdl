@@ -1,0 +1,21 @@
+schema-version 1
+
+description "Rocky Linux bootc base image"
+
+provides {
+    "package-manager/dnf4" witness="/usr/bin/dnf4"
+}
+
+// Rocky Linux publishes no bootc image. This base starts from the distribution image and lists the RHEL bootc parts.
+component "/fedora/build-environment"
+component "/rhel/bootc-base"
+
+base "quay.io/rockylinux/rockylinux:{version}" {
+    family "rhel"
+    bootloader "grub2"
+    scap-content "ssg-rl10-ds.xml"
+}
+
+option "version" type="string" {
+    default "10"
+}

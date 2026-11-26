@@ -16,9 +16,11 @@ provides {
     "ssh" witness="/usr/sbin/sshd"
 }
 
-imports "identity"
+component "/" {
+    os-release
+}
 
-base "example.invalid/base:$version" {
+base "example.invalid/base:{version}" {
     family "fedora"
 }
 
@@ -41,12 +43,12 @@ class Probe(unittest.TestCase):
     def write(self, path, text):
         directory = Path("components") / path
         directory.mkdir(parents=True, exist_ok=True)
-        (directory / "manifest.kdl").write_text(text)
+        (directory / "component.kdl").write_text(text)
 
     def measured(self, requires=""):
-        self.write("base-image/example", BASE.replace("imports", f"{requires}imports"))
-        self.write("identity", 'provides "os-release" witness="/usr/lib/os-release"\n'
-                   'imports "helper"\n')
+        self.write("base-image/example", BASE.replace('component "/"', f'{requires}component "/"'))
+        self.write("os-release", 'provides "os-release" witness="/usr/lib/os-release"\n'
+                   'component "/helper"\n')
         self.write("helper", 'provides "helper" witness="/usr/bin/helper"\n')
         self.write("tool", 'provides "tool" witness="/usr/bin/tool"\n')
         self.write("deb-tool", 'targets "debian"\nprovides "apt" witness="/usr/bin/apt-get"\n')
@@ -120,7 +122,7 @@ class Probe(unittest.TestCase):
             main(["probe.py", "correct", "base-image/example",
                   "/usr/sbin/sshd", "/usr/bin/tool", "/usr/bin/bootc",
                   "--version", "libostree-1-1=2025.3"])
-        written = Path("components/base-image/example/manifest.kdl").read_text()
+        written = Path("components/base-image/example/component.kdl").read_text()
         self.assertIn('"libostree" package="libostree-1-1" version="2025.3"', written)
         self.assertIn("records `libostree-1-1` 2025.3", out.getvalue())
 
@@ -140,12 +142,13 @@ class Probe(unittest.TestCase):
         self.assertEqual(correct("m", BASE, found, {"/usr/sbin/sshd"}), (BASE, ""))
 
     def test_a_base_without_provides_gains_a_block(self):
-        text = BASE.replace(BASE[BASE.index("provides"):BASE.index("imports")], "")
+        text = BASE.replace(BASE[BASE.index("provides"):BASE.index("component")], "")
         corrected, _ = correct("m", text, {"tool": ["/usr/bin/tool"]}, {"/usr/bin/tool"})
-        self.assertIn('provides {\n    "tool" witness="/usr/bin/tool"\n}\n\nimports', corrected)
+        self.assertIn('provides {\n    "tool" witness="/usr/bin/tool"\n}\n', corrected)
+        self.assertIn('component "/" {\n    os-release\n}', corrected)
 
     def test_a_line_form_provides_is_refused(self):
-        text = BASE.replace(BASE[BASE.index("provides"):BASE.index("imports")],
+        text = BASE.replace(BASE[BASE.index("provides"):BASE.index("component")],
                             'provides "ssh" witness="/usr/sbin/sshd"\n\n')
         with self.assertRaises(SystemExit):
             correct("m", text, {"ssh": ["/usr/sbin/sshd"]}, set())

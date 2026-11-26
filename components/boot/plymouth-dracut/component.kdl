@@ -1,0 +1,7 @@
+schema-version 1
+
+description "Plymouth modules for the CachyOS kernel"
+
+targets "fedora"
+
+contributes "dracut.modules" priority=500

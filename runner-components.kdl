@@ -1,6 +1,0 @@
-schema-version 1
-
-components {
-    component "build-tools/podman" checked=#true
-    component "build-tools/buildah" checked=#true
-}

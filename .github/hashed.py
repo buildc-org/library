@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Fail when an asset pin in a manifest.kdl carries no hash.
+"""Fail when an asset pin in a component.kdl carries no hash.
 
-Usage: hashed.py <manifest.kdl>...
+Usage: hashed.py <component.kdl>...
 
 A pin is hashed when it carries a sha256, or when its version is a full git
 commit. A full commit names the content the way a hash does.
@@ -22,7 +22,7 @@ NAME = re.compile(r'^\s*asset\s+"([^"]+)"', re.MULTILINE)
 def unhashed(text):
     fields = dict(pins(text))
 
-    # A pin the field scan cannot parse is unhashed, because an asset pin this check cannot verify must not pass.
+    # A pin the field scan cannot parse is unhashed. An asset pin this check cannot verify must not pass.
     def hashed(name):
         prefix = f"ASSET_{name.upper().replace('-', '_')}"
         return f"{prefix}_URL" in fields and (

@@ -1,0 +1,7 @@
+schema-version 1
+name "Library"
+base-url "https://github.com/buildc-org/library"
+
+library {
+    components "components"
+}

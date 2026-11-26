@@ -1,0 +1,49 @@
+schema-version 1
+
+description "Signed unified kernel image boot chain"
+
+targets "fedora"
+
+provides "boot-chain-uki" witness="/boot/EFI/systemd/systemd-bootx64.efi"
+
+// bootupd writes the grub2 boot entries that the UKI chain replaces. The
+// image must not claim bootupctl.
+removes "bootupctl"
+
+requires "build-environment" "initramfs-generation" "package-manager/dnf5"
+
+key "secureboot" {
+    generator "openssl" profile="module-signing" bits=4096
+    public "/usr/share/secureboot/sb_cert.der" format="der"
+    private "MOK.priv"
+}
+
+key "pcr" {
+    generator "openssl" profile="pcr-signing" bits=2048
+    public "/usr/share/secureboot/pcr.pub" format="pem"
+    private "pcr.priv"
+}
+
+secret "mok_privkey"
+secret "pcr_privkey"
+
+option "trust" type="string" {
+    description "This option sets the Secure Boot trust for the UKI. The option is required. \"shim\" boots through shim and the MOK key. \"db\" enrols the image key as the firmware PK, KEK and db keys."
+    default ""
+}
+
+on "fedora" {
+    packages {
+        "systemd-ukify"
+        "binutils"
+        "systemd-boot-unsigned"
+        "sbsigntools"
+        "openssl"
+        "efitools"
+        "mokutil"
+        "util-linux"
+    }
+}
+
+// The UKI build extracts this fragment as its seal stage so the fragment must stay in the tail position.
+fragment position="tail"

@@ -1,0 +1,15 @@
+schema-version 1
+
+description "Applies SCAP remediation at build time"
+
+targets "fedora" "rhel"
+
+permissions {
+    scripts {
+        network #true
+    }
+}
+
+provides "scap-remediation"
+
+

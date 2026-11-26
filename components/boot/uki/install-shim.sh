@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+esp=${1:?the mounted EFI system partition is required}
+shim=$(find /usr/lib/efi/shim -type f -path '*/EFI/BOOT/BOOTX64.EFI' -print -quit)
+mok=$(find /usr/lib/efi/shim -type f -path '*/EFI/fedora/mmx64.efi' -print -quit)
+if [ -z "$shim" ]; then
+    echo "the image holds no shim under /usr/lib/efi/shim" >&2
+    exit 1
+fi
+if [ -z "$mok" ]; then
+    echo "the image holds no mmx64.efi under /usr/lib/efi/shim" >&2
+    exit 1
+fi
+
+install -D -m 0644 "$shim" "$esp/EFI/BOOT/BOOTX64.EFI"
+# At boot, shim starts the second-stage loader by the fixed name grubx64.efi.
+install -D -m 0644 /usr/lib/systemd/boot/efi/systemd-bootx64.efi \
+    "$esp/EFI/BOOT/grubx64.efi"
+install -D -m 0644 "$mok" "$esp/EFI/BOOT/mmx64.efi"
+install -D -m 0644 /usr/share/secureboot/sb_cert.der \
+    "$esp/EFI/BOOT/MOK.cer"
