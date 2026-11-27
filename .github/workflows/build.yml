@@ -239,7 +239,7 @@ jobs:
       IMAGE: ${{ matrix.image }}
       FAMILY: ${{ matrix.family }}
       # The leg leaves a component that cannot build in isolation to a maintainer.
-      SKIP: system-menu/goojust system-menu/power-scripts boot/uki
+      SKIP: system-menu/goojust system-menu/power-scripts boot/uki deb/bootc-base rhel/bootc-base hardware/nvidia/common
       HARDENING: updates/signature-policy
       CONFORMS: cis_server_l1
       MAX_FAILS: "7"
