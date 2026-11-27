@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - components/deb/bootc-base/manifest.kdl
+      - components/deb/bootc-base/component.kdl
       - components/deb/bootc-base/build-tools.sh
       - .github/pins.py
       - .github/workflows/tools.yml
@@ -115,9 +115,9 @@ jobs:
         run: |
           set -euo pipefail
           cd "${RUNNER_TEMP}/out"
-          # Both families publish into one release, so the second create finds it already there.
+          # Both families publish into one release. The second create finds the release already there.
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes \
             "The bootc and bootupd trees \`deb/bootc-base\` installs, compiled from its pins." \
             || true
           gh release upload "$TAG" "$TARBALL" --repo "$GITHUB_REPOSITORY"
-          echo "::notice::${COMPONENT}/manifest.kdl: bootc-tools-${FAMILY} is version \"${VERSION}\" sha256 \"$(sha256sum "$TARBALL" | cut -d' ' -f1)\""
+          echo "::notice::${COMPONENT}/component.kdl: bootc-tools-${FAMILY} is version \"${VERSION}\" sha256 \"$(sha256sum "$TARBALL" | cut -d' ' -f1)\""

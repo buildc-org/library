@@ -102,7 +102,7 @@ def main(argv):
     family, mode = argv[1], argv[2] if len(argv) == 3 else None
     if mode == "--repos":
         print("set -euo pipefail")
-    for manifest in sorted(COMPONENTS.rglob("manifest.kdl")):
+    for manifest in sorted(COMPONENTS.rglob("component.kdl")):
         if any(part.startswith(".") for part in manifest.parts[:-1]):
             continue
         text = manifest.read_text()

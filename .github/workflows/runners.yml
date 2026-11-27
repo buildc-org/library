@@ -5,10 +5,6 @@ on:
     branches:
       - main
     paths:
-      - components/base-image/runners/**
-      - components/build-tools/**
-      - components/fedora/build-environment/**
-      - runner-components.kdl
       - runner-images/**
       - .github/workflows/runners.yml
   schedule:
@@ -37,17 +33,7 @@ jobs:
         id: list
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          files=(runner-images/*.image.kdl)
-          {
-            printf '['
-            for index in "${!files[@]}"; do
-              [ "$index" -eq 0 ] || printf ','
-              name="${files[$index]##*/}"
-              printf '"%s"' "${name%.image.kdl}"
-            done
-            printf ']'
-          } > images.json
+          jq -c '[.images[].id]' runner-images/generated/plan.json > images.json
           echo "images=$(cat images.json)" >> "$GITHUB_OUTPUT"
 
   build:
@@ -100,54 +86,14 @@ jobs:
             | sha256sum --check --status)
           tar -xzf "$dir"/*.tar.gz -C "$dir"
           {
-            echo "ROOT=${RUNNER_TEMP}/runner"
+            echo "ROOT=${GITHUB_WORKSPACE}/runner-images"
             echo "BUILDC_BIN=${dir}/buildc"
             echo "BUILDC_ASSETS=${dir}/assets"
           } >> "${GITHUB_ENV}"
 
-      - name: Scaffold a build repository from this library
+      - name: Generate the runner repository
         run: |
           set -euo pipefail
-          "$BUILDC_BIN" create repo "$IMAGE" --root "$ROOT" --no-tui \
-            --owner buildc-org --host github.com
-          # The scaffold points at the remote library and the build must read this checkout.
-          awk -v root="$GITHUB_WORKSPACE" '
-            $0 == "sources {" {
-              replaced++
-              print "sources {"
-              print "    components \"buildc\" {"
-              print "        dir \"" root "/components\""
-              print "    }"
-              print "}"
-              replacing = 1
-              next
-            }
-            replacing && $0 == "}" { replacing = 0; next }
-            !replacing
-            END { if (replacing || replaced != 1) exit 1 }
-          ' "${ROOT}/repo.kdl" > "${ROOT}/repo.kdl.new"
-          mv "${ROOT}/repo.kdl.new" "${ROOT}/repo.kdl"
-          for declaration in \
-            '    components "buildc" {' \
-            "        dir \"${GITHUB_WORKSPACE}/components\""; do
-            if [ "$(grep -Fxc "$declaration" "${ROOT}/repo.kdl" || true)" != 1 ]; then
-              echo "::error::repo.kdl must carry exactly one ${declaration}"
-              exit 1
-            fi
-          done
-          if grep -qE '^[[:space:]]+(url|path) ' "${ROOT}/repo.kdl"; then
-            echo '::error::repo.kdl must not carry a remote source'
-            exit 1
-          fi
-          rm -f "${ROOT}/${IMAGE}.image.kdl"
-          "$BUILDC_BIN" create image "$IMAGE" --root "$ROOT" --no-tui \
-            --owner buildc-org --base "base-image/runners/fedora-45"
-          "$BUILDC_BIN" import component "buildc/build-tools/podman" \
-            --root "$ROOT" --image "$IMAGE" --no-tui
-          "$BUILDC_BIN" import component "buildc/build-tools/buildah" \
-            --root "$ROOT" --image "$IMAGE" --no-tui
-          # The published definition replaces the scaffold's placeholder.
-          cp "runner-images/${IMAGE}.image.kdl" "${ROOT}/${IMAGE}.image.kdl"
           cd "$ROOT" && "$BUILDC_BIN" generate
 
       - name: Build the runner

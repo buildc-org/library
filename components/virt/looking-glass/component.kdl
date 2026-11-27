@@ -1,0 +1,29 @@
+schema-version 1
+
+description "Looking Glass VM display client"
+
+targets "fedora"
+
+permissions {
+    scripts {
+        network #true
+    }
+}
+
+requires "kernel-devel" "graphical-session" "package-manager/dnf5"
+
+// The kernel modules are signed with the MOK from secureboot-key and this layer runs after that component to have the key.
+after "secureboot-key"
+
+provides "looking-glass-client"
+
+secret "mok_privkey"
+
+asset "looking-glass" {
+    pin {
+        renovate datasource="github-releases" depName="gnif/LookingGlass"
+        version "B7"
+        url "https://looking-glass.io/artifact/{version}/source"
+        sha256 "09e506660ccc1b9691d06caa70179b52ffb4393299895cff3c2f0e74fcd69985"
+    }
+}

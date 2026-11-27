@@ -1,13 +1,38 @@
 #!/usr/bin/bash
 set -euo pipefail
 
-flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+failed=0
 
-FLATPAK_LIST="/usr/share/flatpak-defaults/apps.list"
-if [ -f "$FLATPAK_LIST" ]; then
-    while IFS= read -r flatpak_id; do
+# A failed flatpak is recorded and the remaining flatpaks are tried. The build
+# log names every flatpak that failed.
+install_list() {
+    local remote="$1" list="$2"
+    [ -f "$list" ] || return 0
+    # A flatpak list may end without a newline and read fails at end of file after
+    # returning the last value. The -n test keeps the last value.
+    while IFS= read -r flatpak_id || [ -n "$flatpak_id" ]; do
         [[ -z "$flatpak_id" || "$flatpak_id" == \#* ]] && continue
-        echo "Installing default flatpak: ${flatpak_id}"
-        flatpak install --system -y --noninteractive flathub "$flatpak_id"
-    done < "$FLATPAK_LIST"
-fi
+        echo "install-flatpaks: installing ${flatpak_id} from ${remote}"
+        if ! flatpak install --system -y --noninteractive "$remote" "$flatpak_id"; then
+            echo "install-flatpaks: ${flatpak_id} from ${remote} failed" >&2
+            failed=1
+        fi
+    done < "$list"
+}
+
+flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+install_list flathub /usr/share/flatpak-defaults/image.list
+install_list flathub /usr/share/flatpak-defaults/apps.list
+
+# If a remote ships no .flatpakrepo file, then the base system must already configure a remote named for the list file.
+for list_file in /usr/share/flatpak-defaults/remotes/*.list; do
+    [ -f "$list_file" ] || continue
+    remote=$(basename "$list_file" .list)
+    repo_file="/usr/share/flatpak-defaults/remotes/${remote}.flatpakrepo"
+    if [ -f "$repo_file" ]; then
+        flatpak remote-add --if-not-exists "$remote" --from "$repo_file"
+    fi
+    install_list "$remote" "$list_file"
+done
+
+exit "$failed"

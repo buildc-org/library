@@ -26,7 +26,7 @@ consumer as a component update.
 import re
 import sys
 
-from closure import COMPONENTS, declared, imported, is_base, manifests, read, reference, targets
+from closure import COMPONENTS, declared, is_base, listed, manifests, read, reference, targets
 
 WITNESS = re.compile(r'^\s*(?:provides\s+)?"([^"]+)"[^\n]*?\bwitness="([^"]+)"', re.M)
 KEY = re.compile(r'^\s*key\s+"([^"]+)"\s*\{[^}]*?^\s*public\s+"([^"]+)"', re.M | re.S)
@@ -63,22 +63,21 @@ def library():
     bases, components = {}, {}
     for name, manifest, text in manifests(COMPONENTS):
         if is_base(text):
-            bases[name] = text
+            bases[name] = (text, read(manifest, name, ""))
         else:
-            components[name] = (read(manifest), pairs(text))
+            components[name] = (read(manifest, name, ""), pairs(text))
     return bases, components
 
 
 def witnesses(base, bases, components):
     """Return each witnessed name the probe measures on one base, with its
-    paths. A component that the base imports is part of the base component. A
+    paths. A component that the base lists is part of the base component. A
     component that meets a base requirement stands in for the base. The base
     never claims what either provides."""
-    text = bases[base]
+    text, base_parts = bases[base]
     declared_family = FAMILY.search(text)
-    lists = declared(text, top=True)
-    brought = imported({name: parts for name, (parts, _) in components.items()},
-                       lists["imports"], [])
+    brought = listed({name: held for name, (held, _) in components.items()},
+                       base_parts[3], [])
     found = {}
 
     def add(found_pairs):
@@ -88,11 +87,11 @@ def witnesses(base, bases, components):
                 held.append(path)
 
     add(pairs(text))
-    for name, (parts, witnessed) in components.items():
-        if declared_family and not targets(parts, declared_family.group(1)):
+    for name, (candidate, witnessed) in components.items():
+        if declared_family and not targets(candidate, declared_family.group(1)):
             continue
-        stands_in = any(name == req or any(meets(has, req) for has in parts[1])
-                        for req in lists["requires"])
+        stands_in = any(name == req or any(meets(has, req) for has in candidate[1])
+                        for req in base_parts[2])
         if name in brought or stands_in:
             continue
         add(witnessed)
@@ -153,9 +152,9 @@ def correct(path, text, found, present, measured=None):
             body = "".join(kept + lines)
             text = text[:block.start()] + (f"provides {{\n{body}}}\n" if body else "") + text[block.end():]
         else:
-            first = re.search(r"^(imports|base)\s", text, re.M)
+            first = re.search(r"^(component|base)\s", text, re.M)
             if not first:
-                sys.exit(f"probe.py: {path} has no `imports` or `base` node to put `provides` before")
+                sys.exit(f"probe.py: {path} has no `component` or `base` node to put `provides` before")
             text = text[:first.start()] + f"provides {{\n{''.join(lines)}}}\n\n" + text[first.start():]
     text, revised = set_versions(text, measured)
     said = []
@@ -179,8 +178,8 @@ def main(argv):
         bases, components = library()
         for base in bases:
             paths = sorted({p for held in witnesses(base, bases, components).values() for p in held})
-            measured_packages = sorted(set(packages(bases[base]).values()))
-            print("|".join([base, reference(bases[base]), family(bases[base]) or "-",
+            measured_packages = sorted(set(packages(bases[base][0]).values()))
+            print("|".join([base, reference(bases[base][0]), family(bases[base][0]) or "-",
                             " ".join(paths) or "-", " ".join(measured_packages) or "-"]))
         return
     if argv[1:2] != ["correct"] or len(argv) < 3:
@@ -201,8 +200,8 @@ def main(argv):
                 measured[package] = version
         else:
             present.append(arg)
-    manifest = COMPONENTS / base / "manifest.kdl"
-    text, said = correct(manifest, bases[base], witnesses(base, bases, components),
+    manifest = COMPONENTS / base / "component.kdl"
+    text, said = correct(manifest, bases[base][0], witnesses(base, bases, components),
                          set(present), measured)
     if said:
         manifest.write_text(text)

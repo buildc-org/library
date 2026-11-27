@@ -1,0 +1,15 @@
+schema-version 1
+
+description "Debian build environment"
+
+targets "debian" "ubuntu"
+
+permissions {
+    scripts {
+        network #true
+    }
+}
+
+provides "build-environment" exclusive=#true
+
+helpers "lib/family.sh"

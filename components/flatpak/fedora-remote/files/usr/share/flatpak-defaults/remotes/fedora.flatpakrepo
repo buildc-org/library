@@ -1,0 +1,4 @@
+[Flatpak Repo]
+Title=Fedora
+Url=oci+https://registry.fedoraproject.org
+AuthenticatorName=org.flatpak.Authenticator.Oci

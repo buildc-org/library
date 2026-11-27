@@ -1,5 +1,13 @@
 source /ctx/lib/sign-helpers.sh
 
+case "$OPT_TRUST" in
+    shim | db) ;;
+    *)
+        echo "boot/uki: option \"trust\" is \"$OPT_TRUST\". Set the option to \"shim\" or \"db\"." >&2
+        exit 1
+        ;;
+esac
+
 openssl x509 -in "$MOK_CERT_DER" -inform DER \
     -out /usr/share/secureboot/sb_cert.pem -outform PEM
 if mok_signing_available; then
@@ -28,9 +36,33 @@ install -D -m 0644 /usr/lib/systemd/boot/efi/systemd-bootx64.efi \
 install -D -m 0644 "$COMPONENT_DIR/canary/digest" \
     /usr/share/buildc/composefs-canary-digest
 bootc --version > /usr/share/buildc/composefs-sealer-version
-if [ -n "${BOOT_CHAIN:-}" ]; then
-    printf '%s\n' "$BOOT_CHAIN" > /usr/share/buildc/boot-chain
-fi
+printf 'uki-%s\n' "$OPT_TRUST" > /usr/share/buildc/boot-chain
 
 rm -rf /usr/lib/efi/grub2
 dnf5 -y remove --noautoremove bootupd
+
+case "$OPT_TRUST" in
+    shim)
+        install -D -m 0755 "$COMPONENT_DIR/install-shim.sh" \
+            /usr/libexec/secureboot-enrolment
+        ;;
+    db)
+        if ! mok_signing_available; then
+            echo "No MOK key was supplied. The image carries no firmware enrolment keys."
+            exit 0
+        fi
+
+        work=$(mktemp -d)
+        openssl x509 -in "$MOK_CERT_DER" -inform DER \
+            -out "$work/secureboot.pem" -outform PEM
+        guid=$(uuidgen)
+        for name in PK KEK db; do
+            cert-to-efi-sig-list -g "$guid" "$work/secureboot.pem" "$work/$name.esl"
+            sign-efi-sig-list -g "$guid" -k "$MOK_KEY" -c "$work/secureboot.pem" \
+                "$name" "$work/$name.esl" "$work/$name.auth"
+            install -D -m 0644 "$work/$name.auth" \
+                "/usr/lib/bootc/install/secureboot-keys/auto/$name.auth"
+        done
+        rm -rf "$work"
+        ;;
+esac

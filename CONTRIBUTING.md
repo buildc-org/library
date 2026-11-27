@@ -4,7 +4,7 @@ This guide adds the collection's acceptance criteria to the
 [organisation's contributing guide](https://github.com/buildc-org/.github/blob/main/CONTRIBUTING.md),
 which sets the pull request title, the squash merge and the
 [AI use policy](https://github.com/buildc-org/.github/blob/main/AI_POLICY.md).
-Every image that imports a component runs its scripts as root at build time, so
+Every image that lists a component runs its scripts as root at build time, so
 the collection accepts a component only when it meets every criterion below. A
 maintainer reviews every pull request, and `CODEOWNERS` requires that review
 on every path.
@@ -29,15 +29,15 @@ on every path.
 4. **It declares its families and capabilities, and its tests pass.**
    `targets` names the base families the component builds on, and `provides`
    and `requires` name the capabilities it offers and needs. On a pull
-   request, CI imports every changed component, with what it requires, on
+   request, CI lists every changed component, with what it requires, on
    Fedora, Debian and Ubuntu. The few components that the `SKIP` list in
    `build.yml` names cannot build in isolation, so a maintainer checks them
    by hand. It resolves every declared package name on
    Debian and Ubuntu, and it runs the `test_*.py` beside each component it
-   imports with `python3 -m unittest discover -s <component directory>`.
+   lists with `python3 -m unittest discover -s <component directory>`.
 5. **A SCAP claim carries its evidence.** A component that declares `satisfies`
-   sits under `hardening/` and targets `rhel`. On a pull request, CI refuses
-   a claim in a component the hardening leg does not import. On every push to
+   sits under `compliance/` and targets `rhel`. On a pull request, CI refuses
+   a claim in a component the hardening leg does not list. On every push to
    `main` and on the weekly build, the hardening leg builds that set on
    CentOS Stream 10, scans the booted image, and fails when a claimed rule
    does not pass.
@@ -45,7 +45,8 @@ on every path.
    builds under `security-policy { network "strict" }`. A package step,
    which installs what `packages`, `package-groups`, `copr` and a `repo.sh`
    declare, keeps the network. A component whose `component.sh` or `finalize.sh` fetches an asset or
-   installs through a package manager declares `network "scripts"`. A
+   installs through a package manager declares
+   `permissions { scripts { network #true } }`. A
    removal works offline and needs no declaration. Every other script step
    runs with no network. `buildc check` names most components that need the
    declaration, and the build fails on the rest.

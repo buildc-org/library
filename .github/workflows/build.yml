@@ -33,10 +33,11 @@ jobs:
             {"image":"bootc-base","family":"debian","base":"docker.io/library/debian:forky"},
             {"image":"bootc-base","family":"ubuntu","base":"docker.io/library/ubuntu:26.04"},
             {"image":"bootc-base","family":"rhel","base":"quay.io/rockylinux/rockylinux:10"},
-            {"image":"hardening","family":"rhel","base":"quay.io/centos-bootc/centos-bootc:stream10"},
+            {"image":"hardening-ci","family":"rhel","base":"quay.io/centos-bootc/centos-bootc:stream10"},
             {"image":"changed","family":"fedora","base":"quay.io/fedora/fedora-bootc:44"},
             {"image":"changed","family":"debian","base":"docker.io/library/debian:forky"},
-            {"image":"changed","family":"ubuntu","base":"docker.io/library/ubuntu:26.04"}
+            {"image":"changed","family":"ubuntu","base":"docker.io/library/ubuntu:26.04"},
+            {"image":"changed","family":"rhel","base":"quay.io/centos-bootc/centos-bootc:stream10"}
           ]'
           deb='[
             {"image":"collection","family":"debian","base":"docker.io/library/debian:forky"},
@@ -96,13 +97,13 @@ jobs:
       - name: Lint Python
         run: ruff check
 
-      # The bracket forms keep the search from matching its own pattern line.
       - name: Check that a pull request runs with no secret and a read-only token
         run: |
           set -euo pipefail
           shopt -s nullglob
           all=(.github/workflows/*.yml .github/workflows/*.yaml)
           mapfile -t started < <(grep -l 'pull_request' "${all[@]}")
+          # The bracket forms keep the search from matching its own pattern line.
           found="$({
             grep -HnE 'pull_request[_]target|workflow[_]run|issue[_]comment' "${all[@]}" || true
             grep -HnE '\bsecret[s]\b|:[[:space:]]*["'"'"']?write' "${started[@]}" || true
@@ -118,11 +119,61 @@ jobs:
           REUSE_IMAGE: docker.io/fsfe/reuse@sha256:85462a75c0f8efda09ddd190b92816b70e7662577c8427429e11e1b9f25a992e
         run: docker run --rm -v "${PWD}:/data:ro" "$REUSE_IMAGE" lint
 
+      - name: Check that the library holds no symbolic link
+        run: |
+          set -euo pipefail
+          # Git records a symbolic link with mode 120000.
+          # grep exits 1 when the library holds no symbolic link. That is the pass case.
+          found="$(git ls-files -s | grep '^120000 ' | cut -f2 || true)"
+          if [ -n "$found" ]; then
+            printf '%s\n' "$found"
+            echo "::error::the library tracks the symbolic links listed above. A component script creates each link at image build time. Remove each link from git and create it in the component script that needs it."
+            exit 1
+          fi
+
       - name: Check the CI scripts and the asset pins
         run: |
           set -euo pipefail
           python3 -m unittest discover -s .github
-          find . -path ./.git -prune -o -name manifest.kdl -print0 | xargs -0 python3 .github/hashed.py
+          find . -path ./.git -prune -o -name component.kdl -print0 | xargs -0 python3 .github/hashed.py
+
+  runner-images:
+    name: Check that the runner repository is current
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Install the released tool
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dir="${RUNNER_TEMP}/buildc"
+          mkdir -p "$dir"
+          gh release download --repo buildc-org/buildc --dir "$dir" \
+            --pattern 'buildc-v*-x86_64-linux-musl.tar.gz*'
+          (cd "$dir" && printf '%s  %s\n' "$(cat ./*.sha256)" ./*.tar.gz \
+            | sha256sum --check --status)
+          tar -xzf "$dir"/*.tar.gz -C "$dir"
+          {
+            echo "BUILDC_BIN=${dir}/buildc"
+            echo "BUILDC_ASSETS=${dir}/assets"
+          } >> "${GITHUB_ENV}"
+
+      - name: Generate the runner repository
+        working-directory: runner-images
+        run: |
+          set -euo pipefail
+          "$BUILDC_BIN" generate
+          if [ -n "$(git status --porcelain -- generated)" ]; then
+            git status --short -- generated
+            git diff -- generated
+            echo "::error::the generated files in runner-images differ from the library. Run buildc generate in runner-images. Commit the generated files."
+            exit 1
+          fi
 
   packages:
     name: package lists ${{ matrix.family }}
@@ -187,8 +238,8 @@ jobs:
       IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
       IMAGE: ${{ matrix.image }}
       FAMILY: ${{ matrix.family }}
-      # These components cannot build in isolation, so the leg leaves them to a maintainer.
-      SKIP: system-menu/goojust system-menu/power-scripts boot/uki boot/secureboot-enrolment
+      # The leg leaves a component that cannot build in isolation to a maintainer.
+      SKIP: system-menu/goojust system-menu/power-scripts boot/uki deb/bootc-base rhel/bootc-base hardware/nvidia/common
       HARDENING: updates/signature-policy
       CONFORMS: cis_server_l1
       MAX_FAILS: "7"
@@ -225,7 +276,6 @@ jobs:
           sudo rm -rf /var/lib/containers/storage /run/containers/storage
           sudo podman info --format 'storage: {{.Store.GraphDriverName}} {{.Store.GraphOptions}}'
 
-      # The released binary reads its assets from the tarball, not from a copy on the runner.
       - name: Install the released tool
         env:
           GH_TOKEN: ${{ github.token }}
@@ -265,27 +315,28 @@ jobs:
             bootc-base)
               dir=deb
               [ "$FAMILY" = rhel ] && dir=rhel
-              find "components/$dir" -mindepth 2 -name manifest.kdl -printf '%h\n' \
+              find "components/$dir" -mindepth 2 -name component.kdl -printf '%h\n' \
                 | sed 's|^components/||' | sort -u \
                 | xargs -r python3 .github/closure.py "$FAMILY" "$BASE" > "$NAMES"
               ;;
-            hardening)
+            hardening-ci)
               {
                 printf '%s\n' $HARDENING
-                find components/hardening -mindepth 2 -name manifest.kdl -printf '%h\n' \
+                find components/compliance components/hardening -mindepth 2 -name component.kdl -printf '%h\n' \
                   | sed 's|^components/||'
               } | sort -u \
                 | xargs -r python3 .github/closure.py "$FAMILY" "$BASE" > "$NAMES"
               ;;
             changed)
-              # A push or a manual run has no pull request base, so the leg diffs the previous commit.
+              # A run that is not a pull request has no base.
+              # A repository with no previous commit selects no component.
               from="${FROM:-$(git rev-parse -q --verify HEAD^ || true)}"
               : > "$NAMES"
               if [ -n "$from" ]; then
                 git diff --name-only "$from" HEAD | while read -r file; do
                   dir="$(dirname "$file")"
                   while [ "$dir" != "." ]; do
-                    if [ -f "${dir}/manifest.kdl" ]; then
+                    if [ -f "${dir}/component.kdl" ]; then
                       echo "${dir#components/}"
                       break
                     fi
@@ -301,16 +352,15 @@ jobs:
           echo "::notice::$(wc -l < "$NAMES") components in the ${IMAGE} leg"
           cat "$NAMES"
 
-      # The hardening leg imports only rhel components, so a claim from another family is never measured.
       - name: Refuse a claim outside the hardening set
-        if: matrix.image == 'hardening'
+        if: matrix.image == 'hardening-ci'
         run: |
           set -euo pipefail
-          claiming="$(grep -rlE '^[[:space:]]*satisfies' --include=manifest.kdl components \
-            | sed 's|^components/||;s|/manifest\.kdl$||' | sort)"
+          claiming="$(grep -rlE '^[[:space:]]*satisfies' --include=component.kdl components \
+            | sed 's|^components/||;s|/component\.kdl$||' | sort)"
           stray="$(comm -23 <(printf '%s\n' "$claiming") <(sort "$NAMES") || true)"
           for name in $claiming; do
-            manifest="components/${name}/manifest.kdl"
+            manifest="components/${name}/component.kdl"
             if grep -q '^targets ' "$manifest" && ! grep -qE '^targets .*"rhel"' "$manifest"; then
               stray="${stray:+${stray}$'\n'}${name}"
             fi
@@ -328,116 +378,123 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           "$BUILDC_BIN" create repo "$IMAGE" --root "$ROOT" --no-tui \
-            --owner buildc-org --host github.com
-          # The splice points the scaffold at this checkout, so the leg tests the tree under review.
-          awk -v root="$GITHUB_WORKSPACE" '
-            $0 == "sources {" {
-              replaced++
-              print "sources {"
-              print "    components \"buildc\" {"
-              print "        dir \"" root "/components\""
-              print "    }"
-              print "}"
-              replacing = 1
-              next
-            }
-            replacing && $0 == "}" { replacing = 0; next }
-            !replacing
-            END { if (replacing || replaced != 1) exit 1 }
-          ' "${ROOT}/repo.kdl" > "${ROOT}/repo.kdl.new"
-          mv "${ROOT}/repo.kdl.new" "${ROOT}/repo.kdl"
-          for declaration in \
-            '    components "buildc" {' \
-            "        dir \"${GITHUB_WORKSPACE}/components\""; do
-            if [ "$(grep -Fxc "$declaration" "${ROOT}/repo.kdl" || true)" != 1 ]; then
-              echo "::error::repo.kdl does not carry exactly one ${declaration}"
+            --owner buildc-org --host github.com --base "$BASE"
+          # The scaffold writes a base component from the reference alone.
+          # This leg reads the library's base component instead.
+          # That component carries the family and the components the base composes.
+          generated="$(find "$ROOT/components/base-image" -mindepth 1 -maxdepth 1 -type d -printf '%f\n')"
+          case "$BASE" in
+            quay.io/fedora/fedora-bootc:*) mapped=fedora-bootc ;;
+            docker.io/library/debian:*) mapped=debian-bootc ;;
+            docker.io/library/ubuntu:*) mapped=ubuntu-bootc ;;
+            quay.io/centos-bootc/centos-bootc:*) mapped=centos-bootc ;;
+            quay.io/rockylinux/rockylinux:*) mapped=rockylinux ;;
+            *)
+              echo "::error::no library base builds from ${BASE}"
               exit 1
-            fi
-          done
-          if grep -qE '^[[:space:]]+(url|path) ' "${ROOT}/repo.kdl"; then
-            echo '::error::repo.kdl still carries a remote source'
+              ;;
+          esac
+          sed -i "s/^    ${generated} signed=#false {/    ${mapped} signed=#false {/" \
+            "$ROOT/${IMAGE}.kdl"
+          if [ "$(grep -cx "    ${mapped} signed=#false {" "$ROOT/${IMAGE}.kdl" || true)" != 1 ]; then
+            echo "::error::${IMAGE}.kdl does not list base-image/${mapped}"
             exit 1
           fi
-          "$BUILDC_BIN" create image "$IMAGE" --root "$ROOT" --no-tui \
-            --owner buildc-org --base "$BASE"
-          # The generated repo uses a strict network policy, so an undeclared fetch fails the build here.
+          # The library carries its own base components. The scaffolded base is discarded.
+          rm -rf "$ROOT/components/base-image"
+          # The checkout is a local library of the scaffold.
+          # The leg builds the tree under review and reads no remote.
+          mkdir -p "$ROOT/library"
+          cp -a "$GITHUB_WORKSPACE/components" "$ROOT/library/"
+          cp "$GITHUB_WORKSPACE/repo.kdl" "$ROOT/library/"
+          python3 - "$ROOT/repo.kdl" <<'PYTHON'
+          import sys
+          from pathlib import Path
+          
+          path = Path(sys.argv[1])
+          text = path.read_text()
+          start = text.find("libraries ")
+          if start < 0:
+              raise SystemExit(f"{path} has no libraries block")
+          depth = 0
+          for at in range(start, len(text)):
+              if text[at] == "{":
+                  depth += 1
+              elif text[at] == "}":
+                  depth -= 1
+                  if depth == 0:
+                      end = at + 1
+                      break
+          else:
+              raise SystemExit(f"{path} has an unterminated libraries block")
+          block = """libraries default="buildc" {
+              local {
+                  local-library { source "." }
+                  buildc { source "library" }
+              }
+          }"""
+          path.write_text(text[:start] + block + text[end:])
+          PYTHON
+          # The generated repo uses a strict network policy so the build fails on an undeclared fetch.
           printf 'security-policy {\n    network "strict"\n}\n' >> "${ROOT}/repo.kdl"
-          alts=("${NAMES}".[0-9]*)
-          for alt in "${alts[@]}"; do
-            "$BUILDC_BIN" create image "${IMAGE}-${alt##*.}" --root "$ROOT" --no-tui \
-              --owner buildc-org --base "$BASE"
-          done
-          if [ "$IMAGE" = hardening ]; then
-            image="${ROOT}/${IMAGE}.image.kdl"
-            bases="$(grep -c '^    base-image {' "$image" || true)"
-            if [ "$bases" != 1 ]; then
-              echo "::error::${image} declares ${bases} images; the conforms splice writes one"
-              exit 1
-            fi
-            sed -i "s|^    base-image {|    conforms \"${CONFORMS}\"\n\n    base-image {|" \
-              "$image"
-            wrote="$(grep -cx "    conforms \"${CONFORMS}\"" "$image" || true)"
-            if [ "$wrote" != 1 ]; then
-              echo "::error::${image} carries ${wrote} of that conforms, expected one"
+          if [ "$IMAGE" = hardening-ci ]; then
+            printf '\nconforms "%s"\n' "${CONFORMS}" >> "$ROOT/${IMAGE}.kdl"
+            if [ "$(grep -cx "conforms \"${CONFORMS}\"" "$ROOT/${IMAGE}.kdl" || true)" != 1 ]; then
+              echo "::error::${IMAGE}.kdl does not declare conforms \"${CONFORMS}\" exactly once"
               exit 1
             fi
           fi
-          listed() {
-            awk '
-              /^image \{/ { inside = 1; next }
-              inside && /^\}/ { inside = 0; next }
-              inside && $1 != "}" && ($1 == "flavour" || NF == 1 || $2 == "{" || $2 ~ /^variant=/) {
-                match($0, /^ */)
-                depth = RLENGTH / 4
-                stack[depth] = ($1 == "flavour") ? "" : $1
-                if ($1 == "flavour") next
-                path = ""
-                for (i = 1; i <= depth; i++) {
-                  if (stack[i] != "") path = (path == "" ? stack[i] : path "/" stack[i])
-                }
-                print path
-              }
-            ' "$1"
-          }
-          declare -A keyed=()
-          import_into() {
-          local image="$1" name
-          while read -r name; do
-            case " $SKIP " in *" $name "*) continue ;; esac
-            manifest="components/${name}/manifest.kdl"
-            if grep -q '^targets ' "$manifest" \
-              && ! grep -q "^targets .*\"${FAMILY}\"" "$manifest"; then
-              continue
-            fi
-            if listed "${ROOT}/${image}.image.kdl" | grep -qxF "$name"; then
-              continue
-            fi
-            "$BUILDC_BIN" import component "buildc/${name}" --root "$ROOT" \
-              --image "$image" --no-tui
-            [ -z "${keyed[$name]:-}" ] || continue
-            keyed[$name]=1
-            case "$name" in
-              boot/cachyos-kernel)
-                "$BUILDC_BIN" create key secureboot --root "$ROOT" --no-tui \
-                  --cn "Collection CI"
-                ;;
-              login-access)
-                "$BUILDC_BIN" create key ssh --root "$ROOT" --no-tui
-                ;;
-              updates/signature-policy)
-                mkdir -p "$ROOT/keys/public/etc/pki/containers"
-                openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 \
-                  | openssl pkey -pubout \
-                    -out "$ROOT/keys/public/etc/pki/containers/cosign.pub"
-                ;;
-            esac
-          done < "$2"
-          }
-          import_into "$IMAGE" "$NAMES"
+          alts=("${NAMES}".[0-9]*)
           for alt in "${alts[@]}"; do
-            import_into "${IMAGE}-${alt##*.}" "$alt"
+            target="${IMAGE}-${alt##*.}"
+            "$BUILDC_BIN" create image "$target" --root "$ROOT" --no-tui \
+              --base "base-image/${mapped}"
+          done
+          declare -A keyed=()
+          add_into() {
+            local image="$1" name
+            while read -r name; do
+              [ -n "$name" ] || continue
+              case " $SKIP " in *" $name "*) continue ;; esac
+              # A component the base or `create image` already lists needs no second
+              # reference. `add component` names that case.
+              if ! said="$("$BUILDC_BIN" add component "$name" --library buildc \
+                --in "$image" --root "$ROOT" --no-tui 2>&1)"; then
+                case "$said" in
+                  *"already lists"*) ;;
+                  *) printf '%s\n' "$said" >&2; exit 1 ;;
+                esac
+              fi
+              [ -z "${keyed[$name]:-}" ] || continue
+              keyed[$name]=1
+              case "$name" in
+                kernel/cachyos-kernel)
+                  "$BUILDC_BIN" create key secureboot --root "$ROOT" --no-tui \
+                    --cn "Collection CI"
+                  ;;
+                login-access)
+                  "$BUILDC_BIN" create key ssh --root "$ROOT" --no-tui
+                  ;;
+                updates/signature-policy)
+                  mkdir -p "$ROOT/keys/private" "$ROOT/keys/public/etc/pki/containers"
+                  openssl ecparam -name prime256v1 -genkey -noout \
+                    -out "$ROOT/keys/private/cosign.key" < /dev/null
+                  openssl ec -in "$ROOT/keys/private/cosign.key" -pubout \
+                    -out "$ROOT/keys/public/etc/pki/containers/cosign.pub" < /dev/null
+                  ;;
+              esac
+            done < "$2"
+          }
+          add_into "$IMAGE" "$NAMES"
+          for alt in "${alts[@]}"; do
+            add_into "${IMAGE}-${alt##*.}" "$alt"
           done
           cd "$ROOT" && "$BUILDC_BIN" generate
+
+      - name: Check the generated repository
+        run: |
+          set -euo pipefail
+          cd "$ROOT" && "$BUILDC_BIN" check
 
       - name: Run lint
         run: |
@@ -500,7 +557,7 @@ jobs:
           previous="$IMAGE"
           for alt in "${NAMES}".[0-9]*; do
             target="${IMAGE}-${alt##*.}"
-            # Each image is removed before the next build to stay inside the runner's disk budget.
+            # The leg removes each image before the next build to stay inside the runner's disk budget.
             sudo podman rmi --ignore "${previous}:latest" > /dev/null
             sudo podman image prune -f > /dev/null
             echo "::group::${target} Containerfile"
@@ -522,7 +579,7 @@ jobs:
           [ "$pages" -gt 0 ]
 
       - name: Restore the last scan's pass set
-        if: matrix.image == 'hardening' && steps.build.outcome != 'skipped'
+        if: matrix.image == 'hardening-ci' && steps.build.outcome != 'skipped'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ runner.temp }}/baseline.json
@@ -530,7 +587,7 @@ jobs:
           restore-keys: scap-machine-${{ matrix.image }}-
 
       - name: Boot the image
-        if: matrix.image == 'hardening' && steps.build.outcome != 'skipped'
+        if: matrix.image == 'hardening-ci' && steps.build.outcome != 'skipped'
         timeout-minutes: 30
         run: |
           set -euo pipefail
@@ -540,17 +597,17 @@ jobs:
           "${ROOT}/generated/scripts/smoke.sh" "${IMAGE}:latest" "${RUNNER_TEMP}/vm"
 
       - name: Evaluate the rules
-        if: matrix.image == 'hardening' && steps.build.outcome != 'skipped'
+        if: matrix.image == 'hardening-ci' && steps.build.outcome != 'skipped'
         run: |
           set -euo pipefail
-          # The VM's host key is new each run, so the SSH calls do not pin it.
           s() {
+            # The VM's host key is new each run and these SSH calls do not pin it.
             ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
               -o LogLevel=ERROR -i "${RUNNER_TEMP}/vm/key" -p 2222 root@localhost "$@"
           }
           content="$(cd "$ROOT" && "$BUILDC_BIN" scap content --target "$IMAGE")"
           cp "${ROOT}/${content}" "${RUNNER_TEMP}/ds.xml"
-          # The scanner installs into /usr, which bootc keeps read-only without the overlay.
+          # The scanner installs into /usr and bootc keeps /usr read-only without the overlay.
           s bootc usr-overlay
           s 'n=0
             until dnf -y install openscap-scanner >/dev/null; do
@@ -562,7 +619,8 @@ jobs:
           s 'cat > /tmp/ds.xml' < "${RUNNER_TEMP}/ds.xml"
           (cd "$ROOT" && "$BUILDC_BIN" scap tailoring --target "$IMAGE" \
             --datastream "${RUNNER_TEMP}/ds.xml") | s 'cat > /tmp/tailoring.xml'
-          # A failed rule makes oscap exit non-zero, so the check reads the result file instead.
+          # A failed rule makes oscap exit non-zero.
+          # The check reads the result file for the findings.
           s oscap xccdf eval \
             --tailoring-file /tmp/tailoring.xml --profile xccdf_buildc_profile_measured \
             --results-arf /tmp/arf.xml /tmp/ds.xml || true
@@ -571,7 +629,7 @@ jobs:
           echo "DATASTREAM=${RUNNER_TEMP}/ds.xml" >> "$GITHUB_ENV"
 
       - name: Compare what was declared to what was measured
-        if: matrix.image == 'hardening' && steps.build.outcome != 'skipped'
+        if: matrix.image == 'hardening-ci' && steps.build.outcome != 'skipped'
         run: |
           set -euo pipefail
           report="$("$BUILDC_BIN" scap "${RUNNER_TEMP}/arf.xml" \
@@ -618,7 +676,7 @@ jobs:
           fi
 
       - name: Keep the scan report
-        if: always() && matrix.image == 'hardening' && steps.build.outcome != 'skipped'
+        if: always() && matrix.image == 'hardening-ci' && steps.build.outcome != 'skipped'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: arf-${{ matrix.image }}
@@ -627,17 +685,17 @@ jobs:
           if-no-files-found: ignore
 
       - name: Serial console
-        if: failure() && matrix.image == 'hardening' && steps.build.outcome != 'skipped'
+        if: failure() && matrix.image == 'hardening-ci' && steps.build.outcome != 'skipped'
         run: |
           cat "${RUNNER_TEMP}/vm/qemu.log" "${RUNNER_TEMP}/vm/console.log" 2> /dev/null || true
 
       - name: Stop qemu
-        if: always() && matrix.image == 'hardening' && steps.build.outcome != 'skipped'
+        if: always() && matrix.image == 'hardening-ci' && steps.build.outcome != 'skipped'
         run: |
           kill "$(cat "${RUNNER_TEMP}/vm/qemu.pid" 2> /dev/null)" 2> /dev/null || true
 
       - name: Save the pass set for the next scan
-        if: always() && matrix.image == 'hardening' && steps.build.outcome != 'skipped'
+        if: always() && matrix.image == 'hardening-ci' && steps.build.outcome != 'skipped'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ runner.temp }}/baseline.json

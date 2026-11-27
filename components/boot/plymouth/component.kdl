@@ -1,0 +1,15 @@
+schema-version 1
+
+description "Graphical boot splash"
+
+targets "fedora" "debian" "ubuntu"
+
+requires "build-environment"
+
+provides "plymouth" witness="/usr/bin/plymouth" package="plymouth"
+
+packages "plymouth"
+
+on "fedora" "ubuntu" { packages "plymouth-theme-spinner" }
+// Debian carries the spinner theme in its generic plymouth-themes package.
+on "debian" { packages "plymouth-themes" }

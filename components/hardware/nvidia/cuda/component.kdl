@@ -1,0 +1,30 @@
+schema-version 1
+
+description "NVIDIA CUDA toolkit"
+
+targets "fedora" "debian" "ubuntu"
+
+requires "build-environment" "nvidia-driver"
+
+option "version" type="string" {
+    description "The CUDA version to install"
+    default "latest"
+}
+
+on "fedora" {
+    fedora-toolkit {
+        version "{version}"
+    }
+}
+
+on "debian" {
+    debian-toolkit {
+        version "{version}"
+    }
+}
+
+on "ubuntu" {
+    ubuntu-toolkit {
+        version "{version}"
+    }
+}

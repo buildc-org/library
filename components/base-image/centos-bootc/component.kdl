@@ -1,0 +1,34 @@
+schema-version 1
+
+description "CentOS Stream bootc base image"
+
+provides {
+    "rechunking"
+    "initramfs-generation" witness="/usr/bin/dracut"
+    "selinux-policy" witness="/usr/sbin/semodule"
+    "ssh" witness="/usr/sbin/sshd"
+    "bootc" witness="/usr/bin/bootc" package="bootc"
+    "bootupctl" witness="/usr/bin/bootupctl"
+    "podman" witness="/usr/bin/podman"
+    "crun" witness="/usr/bin/crun"
+    "package-manager/dnf4" witness="/usr/bin/dnf4"
+}
+
+component "/fedora/build-environment"
+
+base "quay.io/centos-bootc/centos-bootc:{version}" {
+    family "rhel"
+    bootloader "grub2"
+    scap-content "ssg-cs10-ds.xml" {
+        pin {
+            renovate datasource="github-releases" depName="ComplianceAsCode/content" extractVersion="^v(?<version>.+)$"
+            version "0.1.82"
+            url "https://github.com/ComplianceAsCode/content/releases/download/v{version}/scap-security-guide-{version}.zip"
+            sha256 "4cd9aa720c627f6357ef6e7d0b777395e5b3c7dbec84ca7ba3f178ebc1a8f48b" from="manual"
+        }
+    }
+}
+
+option "version" type="string" {
+    default "stream10"
+}

@@ -48,7 +48,7 @@ def pins(text):
 def main(argv):
     if len(argv) != 2:
         sys.exit(__doc__)
-    text = (Path(argv[1]) / "manifest.kdl").read_text()
+    text = (Path(argv[1]) / "component.kdl").read_text()
     for name, value in pins(text):
         print(f"{name}={value}")
 
