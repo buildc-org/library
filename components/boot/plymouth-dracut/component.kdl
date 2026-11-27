@@ -4,4 +4,6 @@ description "Plymouth modules for the CachyOS kernel"
 
 targets "fedora"
 
+requires "plymouth"
+
 contributes "dracut.modules" priority=500

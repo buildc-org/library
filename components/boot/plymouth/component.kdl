@@ -6,6 +6,8 @@ targets "fedora" "debian" "ubuntu"
 
 requires "build-environment"
 
+provides "plymouth" witness="/usr/bin/plymouth" package="plymouth"
+
 packages "plymouth"
 
 on "fedora" "ubuntu" { packages "plymouth-theme-spinner" }
