@@ -15,7 +15,12 @@ else
     echo "kernel-cachyos-devel-matched" > /usr/lib/kernel-build/kernel-devel-package
     echo "$COPR_BIESZCZADERS_KERNEL_CACHYOS" > /usr/lib/kernel-build/kernel-devel-repo
 
-    dnf5 -y install --enablerepo="$COPR_BIESZCZADERS_KERNEL_CACHYOS_ADDONS" \
+    # cachyos-settings ships the oomd per-slice defaults that systemd-oomd-defaults also ships. The CachyOS settings replace the Fedora package.
+    if rpm -q systemd-oomd-defaults > /dev/null; then
+        dnf5 -y remove --noautoremove systemd-oomd-defaults
+    fi
+
+    dnf5 -y install --allowerasing --enablerepo="$COPR_BIESZCZADERS_KERNEL_CACHYOS_ADDONS" \
         ananicy-cpp \
         cachyos-ananicy-rules \
         cachyos-settings \
