@@ -2,7 +2,7 @@
 
 source /ctx/lib/kernel-helpers.sh
 
-KERNEL_DEVEL_PKG=kernel-devel-matched
+KERNEL_DEVEL_PKG=kernel-devel
 KERNEL_DEVEL_REPO=()
 if [ -f /usr/lib/kernel-build/kernel-devel-package ]; then
     KERNEL_DEVEL_PKG="$(cat /usr/lib/kernel-build/kernel-devel-package)"
@@ -16,7 +16,7 @@ if [ -f /usr/lib/kernel-build/kernel-devel-repo ]; then
 fi
 
 kernel_devel_install() {
-    dnf5 -y install "${KERNEL_DEVEL_REPO[@]}" "${KERNEL_DEVEL_PKG}-$(kver)" "$@"
+    dnf5 -y install --enablerepo=updates-archive "${KERNEL_DEVEL_REPO[@]}" "${KERNEL_DEVEL_PKG}-$(kver)" "$@"
 }
 
 kernel_devel_remove() {
