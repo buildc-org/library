@@ -1,9 +1,0 @@
-schema-version 1
-
-description "Podman container engine"
-
-targets "fedora" "debian" "ubuntu"
-
-provides "podman" witness="/usr/bin/podman" package="podman"
-
-packages "podman"

@@ -1,7 +1,0 @@
-schema-version 1
-
-description "System and network just recipes"
-
-targets "fedora" "debian" "ubuntu"
-
-requires "just"

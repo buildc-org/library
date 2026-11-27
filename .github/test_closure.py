@@ -82,25 +82,25 @@ class BaseNeeds(unittest.TestCase):
 
 class Close(unittest.TestCase):
     COMPONENTS = {
-        "fedora/build-environment": (set(), {"build-environment"}, set(), set()),
+        "build-environment/dnf": (set(), {"build-environment"}, set(), set()),
         "os-release": (set(), {"os-release"}, set(), set()),
-        "deb/bootc-base": (set(), {"bootc-base"}, {"container-runtime"}, set()),
-        "deb/container-runtime": (set(), {"container-runtime"}, set(), set()),
+        "bootc-base/apt": (set(), {"bootc-base"}, {"container-runtime"}, set()),
+        "container-environment/runtime/podman": (set(), {"container-runtime"}, set(), set()),
         "editor": (set(), {"editor"}, {"build-environment"}, set()),
         "suite": (set(), {"suite"}, set(), {"os-release"}),
     }
 
     def test_a_component_the_base_lists_is_never_printed(self):
-        needs = ([], [], ["fedora/build-environment"])
-        printed = close(self.COMPONENTS, "fedora", needs, ["editor", "fedora/build-environment"])
+        needs = ([], [], ["build-environment/dnf"])
+        printed = close(self.COMPONENTS, "fedora", needs, ["editor", "build-environment/dnf"])
 
         self.assertEqual(printed, ["editor"])
 
     def test_what_a_component_the_base_lists_requires_is_printed(self):
-        needs = ([], [], ["deb/bootc-base"])
+        needs = ([], [], ["bootc-base/apt"])
         printed = close(self.COMPONENTS, "debian", needs, [])
 
-        self.assertEqual(printed, ["deb/container-runtime"])
+        self.assertEqual(printed, ["container-environment/runtime/podman"])
 
     def test_a_component_a_printed_component_lists_is_never_printed(self):
         printed = close(self.COMPONENTS, "fedora", ([], [], []), ["suite"])
@@ -126,30 +126,30 @@ class TreeCase(unittest.TestCase):
 class Read(TreeCase):
     def test_a_component_path_takes_the_option_default(self):
         manifest = self.write(
-            "fedora/media-codecs",
-            'schema-version 1\n\noption "repo" type="string" {\n    default "fedora"\n}\n'
-            'component "/repos/{repo}"\n',
+            "media-codecs",
+            'schema-version 1\n\noption "repo" type="string" {\n    default "fedora-free"\n}\n'
+            'component "/media-codecs/{repo}"\n',
         )
 
-        self.assertEqual(read(manifest, "fedora/media-codecs", "fedora")[3], {"repos/fedora"})
+        self.assertEqual(read(manifest, "media-codecs", "fedora")[3], {"media-codecs/fedora-free"})
 
     def test_a_component_path_before_the_option_still_resolves(self):
         manifest = self.write(
-            "fedora/media-codecs",
-            'schema-version 1\n\ncomponent "/repos/{repo}"\n\n'
-            'option "repo" type="string" {\n    default "fedora"\n}\n',
+            "media-codecs",
+            'schema-version 1\n\ncomponent "/media-codecs/{repo}"\n\n'
+            'option "repo" type="string" {\n    default "fedora-free"\n}\n',
         )
 
-        self.assertEqual(read(manifest, "fedora/media-codecs", "fedora")[3], {"repos/fedora"})
+        self.assertEqual(read(manifest, "media-codecs", "fedora")[3], {"media-codecs/fedora-free"})
 
     def test_a_component_path_without_a_default_stays_unresolved(self):
         manifest = self.write(
-            "fedora/media-codecs",
+            "media-codecs",
             'schema-version 1\n\noption "repo" type="string" {\n    description "x"\n}\n'
-            'component "/repos/{repo}"\n',
+            'component "/media-codecs/{repo}"\n',
         )
 
-        self.assertEqual(read(manifest, "fedora/media-codecs", "fedora")[3], {"repos/{repo}"})
+        self.assertEqual(read(manifest, "media-codecs", "fedora")[3], {"media-codecs/{repo}"})
 
 
 class ReadTree(TreeCase):
@@ -192,17 +192,17 @@ class PairCollectors(unittest.TestCase):
 class Features(TreeCase):
     def test_a_base_and_an_option_directory_are_not_features(self):
         self.write("base-image/fedora", 'schema-version 1\n\nbase "example.invalid/fedora:1" {\n    family "fedora"\n}\n')
-        self.write("repos/fedora", 'schema-version 1\n\ntargets "fedora"\n')
-        self.write("repos/rpm-fusion", 'schema-version 1\n\ntargets "fedora"\n')
-        self.write("repos/negativo17/fedora-multimedia", 'schema-version 1\n\ntargets "fedora"\n')
+        self.write("media-codecs/fedora-free", 'schema-version 1\n\ntargets "fedora"\n')
+        self.write("media-codecs/rpm-fusion", 'schema-version 1\n\ntargets "fedora"\n')
+        self.write("media-codecs/negativo17", 'schema-version 1\n\ntargets "fedora"\n')
         self.write(
-            "fedora/media-codecs",
-            'schema-version 1\n\noption "repo" type="string" {\n    default "fedora"\n}\n'
-            'component "/repos/{repo}"\n',
+            "media-codecs",
+            'schema-version 1\n\noption "repo" type="string" {\n    default "fedora-free"\n}\n'
+            'component "/media-codecs/{repo}"\n',
         )
-        self.write("fedora/build-environment", 'schema-version 1\n')
+        self.write("build-environment/dnf", 'schema-version 1\n')
 
-        self.assertEqual(features(self.components), ["fedora/build-environment", "fedora/media-codecs"])
+        self.assertEqual(features(self.components), ["build-environment/dnf", "media-codecs"])
 
 
 if __name__ == "__main__":

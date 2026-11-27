@@ -1,0 +1,19 @@
+schema-version 1
+
+description "Fedora container base"
+
+provides {
+    "package-manager/dnf5" witness="/usr/bin/dnf5" package="dnf5"
+}
+
+on "fedora" "rhel" {
+    component "/build-environment/dnf"
+}
+
+base "registry.fedoraproject.org/fedora:{version}" {
+    family "fedora"
+}
+
+option "version" type="string" {
+    default "45"
+}

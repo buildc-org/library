@@ -1,7 +1,0 @@
-schema-version 1
-
-description "Debian non-free firmware repository"
-
-targets "debian"
-
-provides "non-free-firmware"

@@ -1,0 +1,20 @@
+schema-version 1
+
+description "Common CLI utilities"
+
+targets "fedora" "debian" "ubuntu"
+
+packages {
+    "bash-completion"
+    "bc"
+    "htop"
+    "pv"
+    "rsync"
+    "tmux"
+    "tree"
+    "wl-clipboard"
+    "zip"
+}
+
+on "fedora" { packages "7zip-standalone" "bsdunzip" "vim-enhanced" }
+on "debian" "ubuntu" { packages "7zip" "libarchive-tools" "vim" }

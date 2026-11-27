@@ -1,6 +1,0 @@
-schema-version 1
-
-description "Hardened DNS resolver policy"
-
-targets "fedora" "rhel" "debian" "ubuntu"
-

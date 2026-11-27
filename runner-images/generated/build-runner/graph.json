@@ -5,15 +5,41 @@
       "name": "build-environment",
       "kind": "capability",
       "build_only": false,
-      "provider": "fedora/build-environment",
-      "required_by": [],
+      "provider": "build-environment/dnf",
+      "required_by": [
+        "container-environment/runtime/podman"
+      ],
       "after": []
     },
     {
       "name": "buildah",
       "kind": "file",
       "build_only": false,
-      "provider": "containers/buildah",
+      "provider": "container-environment/builder/buildah",
+      "required_by": [],
+      "after": []
+    },
+    {
+      "name": "container-builder",
+      "kind": "capability",
+      "build_only": false,
+      "provider": "container-environment/builder/buildah",
+      "required_by": [],
+      "after": []
+    },
+    {
+      "name": "container-runtime",
+      "kind": "capability",
+      "build_only": false,
+      "provider": "container-environment/runtime/podman",
+      "required_by": [],
+      "after": []
+    },
+    {
+      "name": "crun",
+      "kind": "file",
+      "build_only": false,
+      "provider": "container-environment/runtime/podman",
       "required_by": [],
       "after": []
     },
@@ -37,7 +63,7 @@
       "name": "podman",
       "kind": "file",
       "build_only": false,
-      "provider": "containers/podman",
+      "provider": "container-environment/runtime/podman",
       "required_by": [],
       "after": []
     }
@@ -45,8 +71,8 @@
   "overrides": [],
   "imports": [
     {
-      "component": "fedora/build-environment",
-      "by": "base-image/fedora-45",
+      "component": "build-environment/dnf",
+      "by": "base-image/fedora-container",
       "how": "imports"
     },
     {
@@ -55,12 +81,12 @@
       "how": "lists"
     },
     {
-      "component": "containers/podman",
+      "component": "container-environment/runtime/podman",
       "by": "build-runner",
       "how": "lists"
     },
     {
-      "component": "containers/buildah",
+      "component": "container-environment/builder/buildah",
       "by": "build-runner",
       "how": "lists"
     }

@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - components/deb/bootc-base/component.kdl
-      - components/deb/bootc-base/build-tools.sh
+      - components/bootc-base/apt/component.kdl
+      - components/bootc-base/apt/build-tools.sh
       - .github/pins.py
       - .github/workflows/tools.yml
   workflow_dispatch:
@@ -33,7 +33,7 @@ jobs:
     env:
       FAMILY: ${{ matrix.family }}
       BASE: ${{ matrix.base }}
-      COMPONENT: components/deb/bootc-base
+      COMPONENT: components/bootc-base/apt
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
@@ -52,7 +52,7 @@ jobs:
           tar -xzf "$dir"/*.tar.gz -C "$dir"
           mkdir -p "${RUNNER_TEMP}/ctx/lib"
           cp "$dir"/assets/lib/*.sh "${RUNNER_TEMP}/ctx/lib/"
-          cp components/deb/build-environment/lib/family.sh "${RUNNER_TEMP}/ctx/lib/"
+          cp components/build-environment/apt/lib/family.sh "${RUNNER_TEMP}/ctx/lib/"
 
       - name: Read the component's pins
         run: |
@@ -96,7 +96,7 @@ jobs:
             -e "COMPONENT=${COMPONENT}" \
             "$BASE" bash -euxo pipefail -c '
               source /ctx/lib/family.sh
-              bash /src/components/deb/build-environment/component.sh
+              bash /src/components/build-environment/apt/component.sh
               install_packages curl ca-certificates zstd
               DESTDIR=/stage bash "/src/${COMPONENT}/build-tools.sh"
               tar --use-compress-program="zstd -19 -T0" -C /stage -cf "/out/${TARBALL}" .
