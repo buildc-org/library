@@ -381,10 +381,11 @@ jobs:
           shopt -s nullglob
           "$BUILDC_BIN" create repo "$IMAGE" --root "$ROOT" --no-tui \
             --owner buildc-org --host github.com --base "$BASE"
-          # The scaffold writes a base component from the reference alone.
+          # The scaffold names the base component from the image reference alone.
           # This leg reads the library's base component instead.
           # That component carries the family and the components the base composes.
-          generated="$(find "$ROOT/components/base-image" -mindepth 1 -maxdepth 1 -type d -printf '%f\n')"
+          generated="${BASE##*/}"
+          generated="${generated%%:*}"
           case "$BASE" in
             quay.io/fedora/fedora-bootc:*) mapped=fedora-bootc ;;
             docker.io/library/debian:*) mapped=debian-bootc ;;
@@ -402,8 +403,7 @@ jobs:
             echo "::error::${IMAGE}.kdl does not list base-image/${mapped}"
             exit 1
           fi
-          # The library carries its own base components. The scaffolded base is discarded.
-          rm -rf "$ROOT/components/base-image"
+          # The base entry names the library base component.
           # The checkout is a local library of the scaffold.
           # The leg builds the tree under review and reads no remote.
           mkdir -p "$ROOT/library"
