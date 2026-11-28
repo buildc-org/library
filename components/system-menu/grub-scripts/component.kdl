@@ -1,7 +1,0 @@
-schema-version 1
-
-description "Regenerates the GRUB boot menu"
-
-targets "fedora"
-
-requires "just" "grub2-os-prober-regen"

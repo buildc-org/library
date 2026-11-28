@@ -1,2 +1,0 @@
-enable keylime_registrar.service
-enable keylime_verifier.service

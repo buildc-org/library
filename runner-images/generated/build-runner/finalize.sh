@@ -2,10 +2,10 @@
 # GENERATED FILE, do not edit.
 set -euxo pipefail
 
-# ---- fedora/build-environment ----
-COMPONENT_DIR=/ctx/components/fedora/build-environment
+# ---- build-environment/dnf ----
+COMPONENT_DIR=/ctx/components/build-environment/dnf
 export COMPONENT_DIR
-source /ctx/components/fedora/build-environment/finalize.sh
+source /ctx/components/build-environment/dnf/finalize.sh
 
 # ---- os-release ----
 COMPONENT_DIR=/ctx/components/os-release

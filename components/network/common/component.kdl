@@ -1,0 +1,10 @@
+schema-version 1
+
+description "Common network diagnostics"
+
+targets "fedora" "debian" "ubuntu"
+
+packages "mtr" "tcpdump" "traceroute" "whois"
+
+on "fedora" { packages "nmap-ncat" }
+on "debian" "ubuntu" { packages "netcat-openbsd" }

@@ -67,7 +67,7 @@ class FlatpakLists(unittest.TestCase):
             self.run_layer(root, ["org.mozilla.Thunderbird", "org.gnome.Calculator"])
             # The comment line and the trailing blank line check that the install step skips both kinds of line.
             (root / DEFAULTS.lstrip("/") / "apps.list").write_text(
-                "# from apps/bitwarden\ncom.bitwarden.desktop\n\n"
+                "# from flatpak/app/bitwarden\ncom.bitwarden.desktop\n\n"
             )
             calls = self.run_install(root)
         self.assertEqual(

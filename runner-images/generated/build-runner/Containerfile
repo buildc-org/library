@@ -25,33 +25,33 @@ RUN if [ -L /usr/local ]; then mv /usr/local /usr/local.bak && \
     mkdir -p /usr/local/bin /usr/local/etc /usr/local/games /usr/local/include \
     /usr/local/lib /usr/local/lib64 /usr/local/libexec /usr/local/share /usr/local/src; fi
 
-# ---- fedora/build-environment ----
-RUN --mount=type=bind,from=ctx,source=/generated/build-runner/components/fedora/build-environment,target=/ctx/components/fedora/build-environment \
+# ---- build-environment/dnf ----
+RUN --mount=type=bind,from=ctx,source=/generated/build-runner/components/build-environment/dnf,target=/ctx/components/build-environment/dnf \
     --mount=type=bind,from=ctx,source=/generated/lib,target=/ctx/lib,rw \
-    --mount=type=bind,from=ctx,source=/generated/build-runner/components/fedora/build-environment/lib/family.sh,target=/ctx/lib/family.sh \
-    --mount=type=bind,from=ctx,source=/generated/build-runner/components/fedora/build-environment.sh,target=/generated/build-runner/components/fedora/build-environment.sh \
+    --mount=type=bind,from=ctx,source=/generated/build-runner/components/build-environment/dnf/lib/family.sh,target=/ctx/lib/family.sh \
+    --mount=type=bind,from=ctx,source=/generated/build-runner/components/build-environment/dnf.sh,target=/generated/build-runner/components/build-environment/dnf.sh \
     --mount=type=cache,target=/var/cache \
     --mount=type=cache,target=/var/log \
     --mount=type=tmpfs,target=/tmp \
-    bash /generated/build-runner/components/fedora/build-environment.sh
+    bash /generated/build-runner/components/build-environment/dnf.sh
 
-# ---- containers/podman ----
+# ---- container-environment/runtime/podman ----
 RUN --mount=type=bind,from=ctx,source=/generated/lib,target=/ctx/lib,rw \
-    --mount=type=bind,from=ctx,source=/generated/build-runner/components/fedora/build-environment/lib/family.sh,target=/ctx/lib/family.sh \
-    --mount=type=bind,from=ctx,source=/generated/build-runner/components/containers/podman.sh,target=/generated/build-runner/components/containers/podman.sh \
+    --mount=type=bind,from=ctx,source=/generated/build-runner/components/build-environment/dnf/lib/family.sh,target=/ctx/lib/family.sh \
+    --mount=type=bind,from=ctx,source=/generated/build-runner/components/container-environment/runtime/podman.sh,target=/generated/build-runner/components/container-environment/runtime/podman.sh \
     --mount=type=cache,target=/var/cache \
     --mount=type=cache,target=/var/log \
     --mount=type=tmpfs,target=/tmp \
-    bash /generated/build-runner/components/containers/podman.sh
+    bash /generated/build-runner/components/container-environment/runtime/podman.sh
 
-# ---- containers/buildah ----
+# ---- container-environment/builder/buildah ----
 RUN --mount=type=bind,from=ctx,source=/generated/lib,target=/ctx/lib,rw \
-    --mount=type=bind,from=ctx,source=/generated/build-runner/components/fedora/build-environment/lib/family.sh,target=/ctx/lib/family.sh \
-    --mount=type=bind,from=ctx,source=/generated/build-runner/components/containers/buildah.sh,target=/generated/build-runner/components/containers/buildah.sh \
+    --mount=type=bind,from=ctx,source=/generated/build-runner/components/build-environment/dnf/lib/family.sh,target=/ctx/lib/family.sh \
+    --mount=type=bind,from=ctx,source=/generated/build-runner/components/container-environment/builder/buildah.sh,target=/generated/build-runner/components/container-environment/builder/buildah.sh \
     --mount=type=cache,target=/var/cache \
     --mount=type=cache,target=/var/log \
     --mount=type=tmpfs,target=/tmp \
-    bash /generated/build-runner/components/containers/buildah.sh
+    bash /generated/build-runner/components/container-environment/builder/buildah.sh
 
 # ---- image version ----
 ARG IMAGE_VERSION=dev
@@ -66,7 +66,7 @@ ARG IMAGE_REGISTRY=""
 # ---- finalize ----
 RUN --mount=type=bind,from=ctx,source=/generated/build-runner/finalize.sh,target=/generated/build-runner/finalize.sh \
     --mount=type=bind,from=ctx,source=/generated/lib,target=/ctx/lib \
-    --mount=type=bind,from=ctx,source=/generated/build-runner/components/fedora/build-environment,target=/ctx/components/fedora/build-environment \
+    --mount=type=bind,from=ctx,source=/generated/build-runner/components/build-environment/dnf,target=/ctx/components/build-environment/dnf \
     --mount=type=bind,from=ctx,source=/generated/build-runner/components/os-release,target=/ctx/components/os-release \
     --mount=type=cache,target=/var/cache \
     --mount=type=cache,target=/var/log \
@@ -98,7 +98,7 @@ ARG BUILDC_VERSION=""
 
 # ---- capability versions ----
 RUN --mount=type=bind,from=ctx,source=/generated/lib,target=/ctx/lib \
-    FAMILY=fedora MEASURED="containers/buildah|buildah|buildah containers/podman|podman|podman" \
+    FAMILY=fedora MEASURED="container-environment/builder/buildah|buildah|buildah container-environment/runtime/podman|podman|podman" \
     bash /ctx/lib/measure-image.sh
 
 RUN --mount=type=bind,from=ctx,source=/generated/lib,target=/ctx/lib \

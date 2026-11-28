@@ -30,9 +30,9 @@ jobs:
           set -euo pipefail
           always='[
             {"image":"collection","family":"fedora","base":"quay.io/fedora/fedora-bootc:44"},
-            {"image":"bootc-base","family":"debian","base":"docker.io/library/debian:forky"},
-            {"image":"bootc-base","family":"ubuntu","base":"docker.io/library/ubuntu:26.04"},
-            {"image":"bootc-base","family":"rhel","base":"quay.io/rockylinux/rockylinux:10"},
+            {"image":"bootc","family":"debian","base":"docker.io/library/debian:forky"},
+            {"image":"bootc","family":"ubuntu","base":"docker.io/library/ubuntu:26.04"},
+            {"image":"bootc","family":"rhel","base":"quay.io/rockylinux/rockylinux:10"},
             {"image":"hardening-ci","family":"rhel","base":"quay.io/centos-bootc/centos-bootc:stream10"},
             {"image":"changed","family":"fedora","base":"quay.io/fedora/fedora-bootc:44"},
             {"image":"changed","family":"debian","base":"docker.io/library/debian:forky"},
@@ -77,10 +77,12 @@ jobs:
           mapfile -t repos < <(find . -path ./.git -prune -o -name repo.sh -type f -print)
           mapfile -t helpers < <(find . -path ./.git -prune -o -path '*/files/*' -type f \
             \( -path '*/libexec/*' -o -path '*/system-generators/*' \) -print)
-          shellcheck -s bash "${scripts[@]}"
-          shellcheck -s bash -e SC2034 "${repos[@]}"
-          shellcheck "${helpers[@]}"
-          shfmt -i 4 -ci -bn -sr -d "${scripts[@]}" "${repos[@]}" "${helpers[@]}"
+          if [ ${#scripts[@]} -gt 0 ]; then shellcheck -s bash "${scripts[@]}"; fi
+          if [ ${#repos[@]} -gt 0 ]; then shellcheck -s bash -e SC2034 "${repos[@]}"; fi
+          if [ ${#helpers[@]} -gt 0 ]; then shellcheck "${helpers[@]}"; fi
+          if [ ${#scripts[@]} -gt 0 ] || [ ${#repos[@]} -gt 0 ] || [ ${#helpers[@]} -gt 0 ]; then
+            shfmt -i 4 -ci -bn -sr -d "${scripts[@]}" "${repos[@]}" "${helpers[@]}"
+          fi
           echo "::notice::${#scripts[@]} scripts, ${#repos[@]} repo files and ${#helpers[@]} helpers are clean"
 
       - name: Install ruff
@@ -239,8 +241,8 @@ jobs:
       IMAGE: ${{ matrix.image }}
       FAMILY: ${{ matrix.family }}
       # The leg leaves a component that cannot build in isolation to a maintainer.
-      SKIP: system-menu/goojust system-menu/power-scripts boot/uki deb/bootc-base rhel/bootc-base hardware/nvidia/common
-      HARDENING: updates/signature-policy
+      SKIP: boot/uki build-environment/dnf build-environment/apt bootc-base/apt bootc-base/rhel
+      HARDENING: security/signature-policy
       CONFORMS: cis_server_l1
       MAX_FAILS: "7"
     steps:
@@ -312,17 +314,17 @@ jobs:
                 cat "$alt"
               done
               ;;
-            bootc-base)
-              dir=deb
+            bootc)
+              dir=apt
               [ "$FAMILY" = rhel ] && dir=rhel
-              find "components/$dir" -mindepth 2 -name component.kdl -printf '%h\n' \
+              find "components/bootc-base/$dir" -mindepth 1 -maxdepth 1 -name component.kdl -printf '%h\n' \
                 | sed 's|^components/||' | sort -u \
                 | xargs -r python3 .github/closure.py "$FAMILY" "$BASE" > "$NAMES"
               ;;
             hardening-ci)
               {
                 printf '%s\n' $HARDENING
-                find components/compliance components/hardening -mindepth 2 -name component.kdl -printf '%h\n' \
+                find components/compliance -mindepth 2 -name component.kdl -printf '%h\n' \
                   | sed 's|^components/||'
               } | sort -u \
                 | xargs -r python3 .github/closure.py "$FAMILY" "$BASE" > "$NAMES"
@@ -379,16 +381,17 @@ jobs:
           shopt -s nullglob
           "$BUILDC_BIN" create repo "$IMAGE" --root "$ROOT" --no-tui \
             --owner buildc-org --host github.com --base "$BASE"
-          # The scaffold writes a base component from the reference alone.
+          # The scaffold names the base component from the image reference alone.
           # This leg reads the library's base component instead.
           # That component carries the family and the components the base composes.
-          generated="$(find "$ROOT/components/base-image" -mindepth 1 -maxdepth 1 -type d -printf '%f\n')"
+          generated="${BASE##*/}"
+          generated="${generated%%:*}"
           case "$BASE" in
             quay.io/fedora/fedora-bootc:*) mapped=fedora-bootc ;;
             docker.io/library/debian:*) mapped=debian-bootc ;;
             docker.io/library/ubuntu:*) mapped=ubuntu-bootc ;;
             quay.io/centos-bootc/centos-bootc:*) mapped=centos-bootc ;;
-            quay.io/rockylinux/rockylinux:*) mapped=rockylinux ;;
+            quay.io/rockylinux/rockylinux:*) mapped=rockylinux-bootc ;;
             *)
               echo "::error::no library base builds from ${BASE}"
               exit 1
@@ -400,8 +403,7 @@ jobs:
             echo "::error::${IMAGE}.kdl does not list base-image/${mapped}"
             exit 1
           fi
-          # The library carries its own base components. The scaffolded base is discarded.
-          rm -rf "$ROOT/components/base-image"
+          # The base entry names the library base component.
           # The checkout is a local library of the scaffold.
           # The leg builds the tree under review and reads no remote.
           mkdir -p "$ROOT/library"
@@ -468,14 +470,14 @@ jobs:
               [ -z "${keyed[$name]:-}" ] || continue
               keyed[$name]=1
               case "$name" in
-                kernel/cachyos-kernel)
+                kernel/cachyos)
                   "$BUILDC_BIN" create key secureboot --root "$ROOT" --no-tui \
                     --cn "Collection CI"
                   ;;
-                login-access)
+                login/access)
                   "$BUILDC_BIN" create key ssh --root "$ROOT" --no-tui
                   ;;
-                updates/signature-policy)
+                security/signature-policy)
                   mkdir -p "$ROOT/keys/private" "$ROOT/keys/public/etc/pki/containers"
                   openssl ecparam -name prime256v1 -genkey -noout \
                     -out "$ROOT/keys/private/cosign.key" < /dev/null

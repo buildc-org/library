@@ -28,7 +28,7 @@
       "allows": [],
       "layout": null,
       "base": {
-        "path": "base-image/fedora-45",
+        "path": "base-image/fedora-container",
         "defined": null,
         "image": "registry.fedoraproject.org/fedora:45",
         "family": "fedora",
@@ -42,6 +42,9 @@
         "witnesses": {
           "buildah": [
             "/usr/bin/buildah"
+          ],
+          "crun": [
+            "/usr/bin/crun"
           ],
           "package-manager/dnf5": [
             "/usr/bin/dnf5"
@@ -65,7 +68,7 @@
           "pr": true,
           "components": [
             {
-              "path": "fedora/build-environment",
+              "path": "build-environment/dnf",
               "variant": null,
               "variant-default": false,
               "description": "Shared dnf build helpers",
@@ -85,13 +88,13 @@
               "provenance": {
                 "defined": null,
                 "content": "a51dfd1a6c7fdbc8dcce8255a345cb99acec42c81641763af8b85094a10eed3a",
-                "resolved": "836f917e242cd19718cc1264d16d72f73aea6e3441fbdba073de85b0ab1bded4",
+                "resolved": "d2fd71d10e33e0b75d1008ae305056700d993912676256e1011ef771591f69b4",
                 "repo": false,
                 "imported": null
               },
               "origin": {
                 "how": "imported",
-                "by": "base-image/fedora-45"
+                "by": "base-image/fedora-container"
               },
               "satisfies": [],
               "refuses": []
@@ -136,23 +139,35 @@
               "refuses": []
             },
             {
-              "path": "containers/podman",
+              "path": "container-environment/runtime/podman",
               "variant": null,
               "variant-default": false,
-              "description": "Podman container engine",
+              "description": "Podman container runtime",
               "options": {},
               "provides": [
-                "podman"
+                "container-runtime",
+                "podman",
+                "crun"
               ],
-              "requires": [],
+              "requires": [
+                "build-environment"
+              ],
               "prefers": {},
-              "met_by": {},
+              "met_by": {
+                "build-environment": {
+                  "how": "imported",
+                  "provider": "build-environment/dnf",
+                  "by": "base-image/fedora-container"
+                }
+              },
               "witnessed": [
-                "/usr/bin/podman"
+                "/usr/bin/podman",
+                "/usr/bin/crun"
               ],
               "removes": [],
               "files": {
-                "podman": "/usr/bin/podman"
+                "podman": "/usr/bin/podman",
+                "crun": "/usr/bin/crun"
               },
               "packages": [
                 {
@@ -167,7 +182,7 @@
               "coprs": [],
               "provenance": {
                 "defined": null,
-                "content": "67cd428f41cdd4ba2132f2c4a78493d5c4044bfed3c935de3dad00ff6a340e0e",
+                "content": "0009bd0c5e9db16fe19f6f30592719e5e67c532f14cb406622d8e77dc6661fd0",
                 "resolved": null,
                 "repo": false,
                 "imported": null
@@ -179,13 +194,14 @@
               "refuses": []
             },
             {
-              "path": "containers/buildah",
+              "path": "container-environment/builder/buildah",
               "variant": null,
               "variant-default": false,
               "description": "Buildah image builder",
               "options": {},
               "provides": [
-                "buildah"
+                "buildah",
+                "container-builder"
               ],
               "requires": [],
               "prefers": {},
@@ -210,7 +226,7 @@
               "coprs": [],
               "provenance": {
                 "defined": null,
-                "content": "b79ddc954b2752b7e4da8b4304999ca39fbd0ba82c830fc3f0865c17852a2330",
+                "content": "4b1ef9b97c821b0baeebf925ece375ffae96eb4372dd16272ab3a9e5f462d1d7",
                 "resolved": null,
                 "repo": false,
                 "imported": null
@@ -256,6 +272,7 @@
           "contract_files": [
             "/usr/bin/dnf5",
             "/usr/bin/podman",
+            "/usr/bin/crun",
             "/usr/bin/buildah"
           ],
           "verify_exceptions": [],
@@ -273,15 +290,15 @@
             "base": "registry.fedoraproject.org/fedora:45",
             "args": [
               "TARGET=build-runner",
-              "COMPONENT_HASHES=fedora/build-environment|a51dfd1a6c7fdbc8dcce8255a345cb99acec42c81641763af8b85094a10eed3a os-release|403ac41630cb472355076fcee0609fe95d1adb089739c98b9eb0c48cef9de63d containers/podman|67cd428f41cdd4ba2132f2c4a78493d5c4044bfed3c935de3dad00ff6a340e0e containers/buildah|b79ddc954b2752b7e4da8b4304999ca39fbd0ba82c830fc3f0865c17852a2330",
+              "COMPONENT_HASHES=build-environment/dnf|a51dfd1a6c7fdbc8dcce8255a345cb99acec42c81641763af8b85094a10eed3a os-release|403ac41630cb472355076fcee0609fe95d1adb089739c98b9eb0c48cef9de63d container-environment/runtime/podman|0009bd0c5e9db16fe19f6f30592719e5e67c532f14cb406622d8e77dc6661fd0 container-environment/builder/buildah|4b1ef9b97c821b0baeebf925ece375ffae96eb4372dd16272ab3a9e5f462d1d7",
               "ASSET_RESOLUTIONS=",
               "BASE_DECLARED=registry.fedoraproject.org/fedora:45"
             ],
             "unresolved": [],
             "validate": [
-              "CONTRACT_FILES=/usr/bin/dnf5 /usr/bin/podman /usr/bin/buildah",
+              "CONTRACT_FILES=/usr/bin/dnf5 /usr/bin/podman /usr/bin/crun /usr/bin/buildah",
               "BOOTC=false",
-              "VERSIONED=containers/buildah|buildah|buildah containers/podman|podman|podman"
+              "VERSIONED=container-environment/builder/buildah|buildah|buildah container-environment/runtime/podman|podman|podman"
             ]
           }
         }

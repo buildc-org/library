@@ -1,5 +1,0 @@
-schema-version 1
-
-description "NVIDIA shared files and toolkit helpers"
-
-helpers "lib/cuda-toolkit.sh"

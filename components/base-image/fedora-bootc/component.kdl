@@ -11,11 +11,14 @@ provides {
     "bootc" witness="/usr/bin/bootc" package="bootc"
     "bootupctl" witness="/usr/bin/bootupctl"
     "podman" witness="/usr/bin/podman"
+    "container-runtime"
     "crun" witness="/usr/bin/crun"
     "package-manager/dnf5" witness="/usr/bin/dnf5" package="dnf5" version="5.4.7.0"
 }
 
-component "/fedora/build-environment"
+on "fedora" "rhel" {
+    component "/build-environment/dnf"
+}
 
 base "quay.io/fedora/fedora-bootc:{version}" {
     family "fedora"

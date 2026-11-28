@@ -8,8 +8,10 @@ provides {
     "libostree" package="libostree-1-1" version="2026.6"
 }
 
-component "/deb/build-environment"
-component "/deb/bootc-base"
+on "debian" "ubuntu" {
+    component "/build-environment/apt"
+    component "/bootc-base/apt"
+}
 
 base "docker.io/library/debian:{version}" {
     family "debian"

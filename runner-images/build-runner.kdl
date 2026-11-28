@@ -9,10 +9,14 @@ os-release {
 }
 
 base-image {
-    fedora-45
+    fedora-container
 }
 
-containers {
-    podman
-    buildah
+container-environment {
+    runtime {
+        podman
+    }
+    builder {
+        buildah
+    }
 }

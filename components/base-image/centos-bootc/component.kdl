@@ -10,11 +10,14 @@ provides {
     "bootc" witness="/usr/bin/bootc" package="bootc"
     "bootupctl" witness="/usr/bin/bootupctl"
     "podman" witness="/usr/bin/podman"
+    "container-runtime"
     "crun" witness="/usr/bin/crun"
     "package-manager/dnf4" witness="/usr/bin/dnf4"
 }
 
-component "/fedora/build-environment"
+on "fedora" "rhel" {
+    component "/build-environment/dnf"
+}
 
 base "quay.io/centos-bootc/centos-bootc:{version}" {
     family "rhel"
